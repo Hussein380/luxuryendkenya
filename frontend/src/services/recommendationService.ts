@@ -2,50 +2,55 @@
  * Recommendation Service
  * 
  * Handles AI-powered recommendations and chat functionality.
- * Currently uses mocked data, structured for easy AI backend integration.
  */
 
-import { mockRecommendations, mockAIResponses, type Recommendation, type AIMessage } from '@/data/mockRecommendations';
-import { mockCars, type Car } from '@/data/mockCars';
-import { simulateDelay } from './apiClient';
+import { type Recommendation, type AIMessage } from '@/data/mockRecommendations';
+import { type Car } from '@/data/mockCars';
+import { apiRequest } from './apiClient';
 
 /**
- * Get personalized car recommendations
+ * Map backend car object to frontend car object (handling _id)
+ */
+const mapCar = (car: any): Car => ({
+  ...car,
+  id: car.id || car._id,
+});
+
+/**
+ * Get personalized car recommendations from the AI
  */
 export async function getRecommendations(): Promise<(Recommendation & { car: Car })[]> {
-  await simulateDelay();
-  
-  return mockRecommendations.map(rec => ({
-    ...rec,
-    car: mockCars.find(c => c.id === rec.carId)!,
-  })).filter(rec => rec.car);
+  const response = await apiRequest<any[]>('/ai/recommendations');
+
+  if (response.success && response.data) {
+    // Map the backend Car array to the structure the Home page expects
+    return response.data.map((car, index) => ({
+      id: `rec-${index}`,
+      carId: car._id,
+      reason: "Based on our AI's analysis of your preferences and current fleet availability.",
+      tags: [car.category, car.fuelType, "Top Rated"],
+      score: 0.9 + (Math.random() * 0.1), // Simulated relevance score
+      car: mapCar(car)
+    }));
+  }
+
+  return [];
 }
 
 /**
- * Get AI chat response (mocked)
+ * Get AI chat response from Gemini Backend
  */
 export async function getAIChatResponse(message: string): Promise<string> {
-  await simulateDelay(800);
-  
-  const messageLower = message.toLowerCase();
-  
-  if (messageLower.includes('hello') || messageLower.includes('hi')) {
-    return mockAIResponses.greeting;
+  const response = await apiRequest<{ response: string }>('/ai/chat', {
+    method: 'POST',
+    body: JSON.stringify({ message }),
+  });
+
+  if (response.success && response.data?.response) {
+    return response.data.response;
   }
-  if (messageLower.includes('electric') || messageLower.includes('tesla')) {
-    return mockAIResponses.electric;
-  }
-  if (messageLower.includes('family') || messageLower.includes('space') || messageLower.includes('suv')) {
-    return mockAIResponses.family;
-  }
-  if (messageLower.includes('budget') || messageLower.includes('cheap') || messageLower.includes('affordable')) {
-    return mockAIResponses.budget;
-  }
-  if (messageLower.includes('luxury') || messageLower.includes('premium') || messageLower.includes('mercedes') || messageLower.includes('porsche')) {
-    return mockAIResponses.luxury;
-  }
-  
-  return mockAIResponses.default;
+
+  return response.error || "I'm sorry, I'm having trouble connecting to my brain right now. Please try again.";
 }
 
 /**
@@ -55,7 +60,7 @@ export function getInitialMessage(): AIMessage {
   return {
     id: '1',
     role: 'assistant',
-    content: mockAIResponses.default,
+    content: "Hello! I'm your DriveEase assistant. How can I help you find the perfect car today?",
     timestamp: new Date().toISOString(),
   };
 }

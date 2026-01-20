@@ -11,7 +11,7 @@
  */
 
 import { mockCars, carCategories, locations, type Car } from '@/data/mockCars';
-import { simulateDelay } from './apiClient';
+import { apiRequest, simulateDelay } from './apiClient';
 
 export interface CarFilters {
   category?: string;
@@ -33,53 +33,42 @@ export interface CarsResponse {
 }
 
 /**
+ * Map backend car object to frontend car object (handling _id)
+ */
+const mapCar = (car: any): Car => ({
+  ...car,
+  id: car.id || car._id,
+});
+
+/**
  * Get all cars with optional filtering
  */
 export async function getCars(filters?: CarFilters): Promise<CarsResponse> {
-  await simulateDelay();
-  
-  let filteredCars = [...mockCars];
-  
+  const queryParams = new URLSearchParams();
   if (filters) {
-    if (filters.category && filters.category !== 'all') {
-      filteredCars = filteredCars.filter(car => car.category === filters.category);
-    }
-    if (filters.priceMin !== undefined) {
-      filteredCars = filteredCars.filter(car => car.pricePerDay >= filters.priceMin!);
-    }
-    if (filters.priceMax !== undefined) {
-      filteredCars = filteredCars.filter(car => car.pricePerDay <= filters.priceMax!);
-    }
-    if (filters.transmission) {
-      filteredCars = filteredCars.filter(car => car.transmission === filters.transmission);
-    }
-    if (filters.fuelType) {
-      filteredCars = filteredCars.filter(car => car.fuelType === filters.fuelType);
-    }
-    if (filters.location) {
-      filteredCars = filteredCars.filter(car => car.location === filters.location);
-    }
-    if (filters.seats !== undefined) {
-      filteredCars = filteredCars.filter(car => car.seats >= filters.seats!);
-    }
-    if (filters.available !== undefined) {
-      filteredCars = filteredCars.filter(car => car.available === filters.available);
-    }
-    if (filters.search) {
-      const searchLower = filters.search.toLowerCase();
-      filteredCars = filteredCars.filter(car => 
-        car.name.toLowerCase().includes(searchLower) ||
-        car.brand.toLowerCase().includes(searchLower) ||
-        car.model.toLowerCase().includes(searchLower)
-      );
-    }
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== 'all') {
+        queryParams.append(key, value.toString());
+      }
+    });
   }
-  
+
+  const response = await apiRequest<{ cars: any[]; total: number; page: number; pageSize: number }>(
+    `/cars?${queryParams.toString()}`
+  );
+
+  if (response.success && response.data) {
+    return {
+      ...response.data,
+      cars: response.data.cars.map(mapCar),
+    };
+  }
+
   return {
-    cars: filteredCars,
-    total: filteredCars.length,
+    cars: [],
+    total: 0,
     page: 1,
-    pageSize: filteredCars.length,
+    pageSize: 10,
   };
 }
 
@@ -87,46 +76,69 @@ export async function getCars(filters?: CarFilters): Promise<CarsResponse> {
  * Get a single car by ID
  */
 export async function getCarById(id: string): Promise<Car | null> {
-  await simulateDelay();
-  return mockCars.find(car => car.id === id) || null;
+  const response = await apiRequest<any>(`/cars/${id}`);
+  if (response.success && response.data) {
+    return mapCar(response.data);
+  }
+  return null;
 }
 
 /**
  * Get featured cars (top rated, available)
  */
 export async function getFeaturedCars(limit: number = 4): Promise<Car[]> {
-  await simulateDelay();
-  return mockCars
-    .filter(car => car.available && car.rating >= 4.5)
-    .sort((a, b) => b.rating - a.rating)
-    .slice(0, limit);
+  const response = await apiRequest<any[]>(`/cars?featured=true&limit=${limit}`);
+  if (response.success && response.data) {
+    // Updated mapping to handle both direct array and wrapped object
+    const cars = Array.isArray(response.data) ? response.data :
+      (response.data && typeof response.data === 'object' && 'cars' in response.data) ? (response.data as any).cars : [];
+    return (cars || []).map(mapCar);
+  }
+  return [];
 }
 
 /**
  * Get available categories
  */
 export async function getCategories() {
-  await simulateDelay(100);
-  return carCategories;
+  const response = await apiRequest<string[]>('/cars/categories');
+  if (response.success && response.data) {
+    // Map simple strings to the object structure expected by the frontend
+    const iconMap: Record<string, string> = {
+      'Economy': '🚗',
+      'Compact': '🚙',
+      'Sedan': '🏙️',
+      'SUV': '🏔️',
+      'Luxury': '✨',
+      'Sports': '🏎️'
+    };
+    return response.data.map(cat => ({
+      id: cat.toLowerCase(),
+      name: cat,
+      icon: iconMap[cat] || '🚗'
+    }));
+  }
+  return [];
 }
 
 /**
  * Get available locations
  */
 export async function getLocations() {
-  await simulateDelay(100);
-  return locations;
+  const response = await apiRequest<string[]>('/cars/locations');
+  if (response.success && response.data) {
+    return response.data;
+  }
+  return [];
 }
 
 /**
  * Search cars by query
  */
 export async function searchCars(query: string): Promise<Car[]> {
-  await simulateDelay();
-  const searchLower = query.toLowerCase();
-  return mockCars.filter(car => 
-    car.name.toLowerCase().includes(searchLower) ||
-    car.brand.toLowerCase().includes(searchLower) ||
-    car.category.toLowerCase().includes(searchLower)
-  );
+  const response = await apiRequest<{ cars: any[] }>(`/cars?search=${query}`);
+  if (response.success && response.data) {
+    return (response.data.cars || []).map(mapCar);
+  }
+  return [];
 }

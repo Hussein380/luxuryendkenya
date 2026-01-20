@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, Car, User } from 'lucide-react';
+import { Menu, X, Car, User, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/context/AuthContext';
 
 const navLinks = [
   { href: '/', label: 'Home' },
@@ -14,6 +15,7 @@ const navLinks = [
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
+  const { user, logout, isAuthenticated } = useAuth();
 
   return (
     <header className="sticky top-0 z-50 glass border-b border-border/50">
@@ -46,13 +48,27 @@ export function Header() {
 
         {/* Desktop CTA */}
         <div className="hidden md:flex items-center gap-3">
-          <Button variant="ghost" size="sm" className="gap-2">
-            <User className="w-4 h-4" />
-            Sign In
-          </Button>
-          <Button size="sm" className="gradient-accent text-accent-foreground border-0 shadow-accent">
-            Book Now
-          </Button>
+          {isAuthenticated ? (
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-accent">Hi, {user?.name.split(' ')[0]}</span>
+              <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-destructive" onClick={logout}>
+                <LogOut className="w-4 h-4" />
+                Logout
+              </Button>
+            </div>
+          ) : (
+            <>
+              <Button variant="ghost" size="sm" className="gap-2" asChild>
+                <Link to="/login">
+                  <User className="w-4 h-4" />
+                  Sign In
+                </Link>
+              </Button>
+              <Button size="sm" className="gradient-accent text-accent-foreground border-0 shadow-accent">
+                Book Now
+              </Button>
+            </>
+          )}
         </div>
 
         {/* Mobile Menu Button */}
@@ -91,12 +107,24 @@ export function Header() {
                 </Link>
               ))}
               <div className="pt-3 border-t border-border space-y-2">
-                <Button variant="outline" className="w-full" size="sm">
-                  Sign In
-                </Button>
-                <Button className="w-full gradient-accent text-accent-foreground border-0" size="sm">
-                  Book Now
-                </Button>
+                {isAuthenticated ? (
+                  <>
+                    <p className="text-xs text-muted-foreground px-3">Signed in as {user?.email}</p>
+                    <Button variant="outline" className="w-full text-destructive" size="sm" onClick={logout}>
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Logout
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button variant="outline" className="w-full" size="sm" asChild onClick={() => setIsMenuOpen(false)}>
+                      <Link to="/login">Sign In</Link>
+                    </Button>
+                    <Button className="w-full gradient-accent text-accent-foreground border-0" size="sm">
+                      Book Now
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           </motion.div>

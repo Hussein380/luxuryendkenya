@@ -1,16 +1,10 @@
 /**
  * API Client Configuration
  * 
- * This file contains the API client setup. Currently returns mocked data,
- * but is structured to easily switch to real API calls.
- * 
- * To connect to a real backend:
- * 1. Update BASE_URL to your API endpoint
- * 2. Uncomment the fetch logic in apiRequest
- * 3. Add authentication headers as needed
+ * This file contains the API client setup.
  */
 
-const BASE_URL = '/api'; // Update this when connecting real backend
+const BASE_URL = 'http://localhost:5000/api';
 
 export interface ApiResponse<T> {
   data: T;
@@ -19,40 +13,44 @@ export interface ApiResponse<T> {
   error?: string;
 }
 
-// Simulated network delay for realistic UX
+// Simulated network delay for realistic UX (optional if calling real API)
 const simulateDelay = (ms: number = 300): Promise<void> => {
   return new Promise(resolve => setTimeout(resolve, ms));
 };
 
 /**
  * Generic API request function
- * Currently returns mocked data with simulated delay
- * Ready to be replaced with actual fetch calls
  */
 export async function apiRequest<T>(
   endpoint: string,
   options?: RequestInit
 ): Promise<ApiResponse<T>> {
-  // Simulate network delay for realistic loading states
-  await simulateDelay(Math.random() * 500 + 200);
-  
-  // When connecting to real backend, uncomment below:
-  /*
   try {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('driveease_token') : null;
     const response = await fetch(`${BASE_URL}${endpoint}`, {
       ...options,
       headers: {
         'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
         ...options?.headers,
       },
     });
-    
+
+    const result = await response.json();
+
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      return {
+        data: null as T,
+        success: false,
+        error: result.error || `HTTP error! status: ${response.status}`,
+      };
     }
-    
-    const data = await response.json();
-    return { data, success: true };
+
+    return {
+      data: result.data as T,
+      success: true,
+      message: result.message
+    };
   } catch (error) {
     return {
       data: null as T,
@@ -60,13 +58,6 @@ export async function apiRequest<T>(
       error: error instanceof Error ? error.message : 'Unknown error',
     };
   }
-  */
-  
-  // For now, return success response (actual data comes from service layer)
-  return {
-    data: null as T,
-    success: true,
-  };
 }
 
 export { simulateDelay };
