@@ -9,21 +9,25 @@ const {
 } = require('../controllers/bookings.controller');
 
 const { protect, restrictTo } = require('../middleware/auth.middleware');
+const validate = require('../middleware/validate.middleware');
+const { bookingCreateSchema, bookingStatusSchema } = require('../utils/schemas/booking.schema');
 
 const router = express.Router();
 
 // Public routes
-router.post('/', createBooking); // Public creation for guest checkout or authenticated users
 router.get('/extras', getBookingExtras);
 
-// Protected routes (User or Admin)
-router.use(protect);
+// Combined routes for '/'
+router.route('/')
+    .get(protect, restrictTo('admin'), getBookings)
+    .post(validate(bookingCreateSchema), createBooking);
 
-router.get('/', getBookings);
-router.get('/:id', getBookingById);
-router.delete('/:id', cancelBooking);
+// Protected routes (User or Admin)
+router.get('/my', protect, getBookings);
+router.get('/:id', protect, getBookingById);
+router.delete('/:id', protect, cancelBooking);
 
 // Admin-only routes
-router.patch('/:id/status', restrictTo('admin'), updateBookingStatus);
+router.patch('/:id/status', protect, restrictTo('admin'), validate(bookingStatusSchema), updateBookingStatus);
 
 module.exports = router;

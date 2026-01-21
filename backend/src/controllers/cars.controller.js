@@ -1,6 +1,7 @@
 const Car = require('../models/Car');
 const Location = require('../models/Location');
 const { sendSuccess, sendError } = require('../utils/response');
+const { clearCarCache } = require('../config/redis.config');
 
 // @desc    Get all cars with filters/search
 // @route   GET /api/cars
@@ -143,6 +144,7 @@ exports.createCar = async (req, res) => {
         }
 
         const car = await Car.create(carData);
+        await clearCarCache();
         sendSuccess(res, car, 'Car created successfully', 201);
     } catch (error) {
         console.error('Create Car Error:', error);
@@ -186,6 +188,7 @@ exports.updateCar = async (req, res) => {
             runValidators: true
         });
 
+        await clearCarCache();
         sendSuccess(res, car, 'Car updated successfully');
     } catch (error) {
         console.error('Update Car Error:', error);
@@ -204,6 +207,7 @@ exports.deleteCar = async (req, res) => {
         }
 
         await car.deleteOne();
+        await clearCarCache();
         sendSuccess(res, null, 'Car deleted successfully');
     } catch (error) {
         sendError(res, error.message, 500);

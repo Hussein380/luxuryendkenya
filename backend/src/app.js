@@ -2,8 +2,10 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const logger = require('./utils/logger');
 const errorHandler = require('./middleware/errorHandler.middleware');
 const { sendSuccess, sendError } = require('./utils/response');
+const { globalLimiter } = require('./middleware/rateLimit.middleware');
 
 const app = express();
 
@@ -11,7 +13,16 @@ const app = express();
 app.use(helmet()); // Security headers
 app.use(cors()); // Enable CORS
 app.use(express.json()); // Body parser
-app.use(morgan('dev')); // Logger
+
+// HTTP Request Logging (Morgan + Winston)
+app.use(morgan(':method :url :status :res[content-length] - :response-time ms', {
+    stream: {
+        write: (message) => logger.http(message.trim()),
+    },
+}));
+
+// Security: Rate Limiting (Applied to all /api routes)
+app.use('/api', globalLimiter);
 
 // Routes
 app.use('/api/auth', require('./routes/auth.routes'));

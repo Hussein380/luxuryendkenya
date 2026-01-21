@@ -12,19 +12,22 @@ const {
 
 const { protect, restrictTo } = require('../middleware/auth.middleware');
 const { uploadCarImage } = require('../middleware/upload.middleware');
+const validate = require('../middleware/validate.middleware');
+const { carCreateSchema, carUpdateSchema } = require('../utils/schemas/car.schema');
+const cache = require('../middleware/cache.middleware');
 
 const router = express.Router();
 
 // Public routes
-router.get('/', getCars);
-router.get('/featured', getFeaturedCars);
-router.get('/categories', getCategories);
-router.get('/locations', getLocations);
+router.get('/', cache(300), getCars); // Cache list for 5 mins
+router.get('/featured', cache(3600), getFeaturedCars); // Cache featured for 1 hour
+router.get('/categories', cache(86400), getCategories); // Cache categories for 1 day
+router.get('/locations', cache(86400), getLocations); // Cache locations for 1 day
 router.get('/:id', getCarById);
 
 // Admin routes
-router.post('/', protect, restrictTo('admin'), uploadCarImage, createCar);
-router.put('/:id', protect, restrictTo('admin'), uploadCarImage, updateCar);
+router.post('/', protect, restrictTo('admin'), uploadCarImage, validate(carCreateSchema), createCar);
+router.put('/:id', protect, restrictTo('admin'), uploadCarImage, validate(carUpdateSchema), updateCar);
 router.delete('/:id', protect, restrictTo('admin'), deleteCar);
 
 module.exports = router;
