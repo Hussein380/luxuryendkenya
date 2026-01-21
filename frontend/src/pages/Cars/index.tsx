@@ -6,7 +6,7 @@ import { CarCard } from '@/components/cars/CarCard';
 import { CarFilters } from '@/components/cars/CarFilters';
 import { CarCardSkeleton } from '@/components/common/Skeleton';
 import { getCars, type CarFilters as CarFiltersType } from '@/services/carService';
-import type { Car } from '@/data/mockCars';
+import type { Car } from '@/types';
 
 export default function Cars() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -33,7 +33,7 @@ export default function Cars() {
 
   const handleFilterChange = (newFilters: CarFiltersType) => {
     setFilters(newFilters);
-    
+
     // Update URL params
     const params = new URLSearchParams();
     if (newFilters.category) params.set('category', newFilters.category);

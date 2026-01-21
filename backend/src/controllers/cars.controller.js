@@ -110,11 +110,6 @@ exports.getLocations = async (req, res) => {
         const locations = await Location.find({ isActive: true }).select('name');
         const locationNames = locations.map(loc => loc.name);
 
-        // Fallback if no locations in DB
-        if (locationNames.length === 0) {
-            return sendSuccess(res, ['Downtown', 'Airport', 'Suburb', 'Train Station']);
-        }
-
         sendSuccess(res, locationNames);
     } catch (error) {
         sendError(res, error.message, 500);
@@ -126,9 +121,31 @@ exports.getLocations = async (req, res) => {
 // @access  Private/Admin
 exports.createCar = async (req, res) => {
     try {
-        const car = await Car.create(req.body);
+        const carData = { ...req.body };
+
+        // If a file was uploaded, use its URL
+        if (req.file) {
+            carData.imageUrl = req.file.path;
+        }
+
+        // Handle nested or stringified features/data if sent via FormData
+        if (typeof carData.features === 'string') {
+            try {
+                carData.features = JSON.parse(carData.features);
+            } catch (e) {
+                carData.features = carData.features.split(',').map(f => f.trim());
+            }
+        }
+
+        // Generate name from brand and model if missing
+        if (!carData.name && carData.brand && carData.model) {
+            carData.name = `${carData.brand} ${carData.model}`;
+        }
+
+        const car = await Car.create(carData);
         sendSuccess(res, car, 'Car created successfully', 201);
     } catch (error) {
+        console.error('Create Car Error:', error);
         sendError(res, error.message, 400);
     }
 };
@@ -143,13 +160,35 @@ exports.updateCar = async (req, res) => {
             return sendError(res, 'Car not found', 404);
         }
 
-        car = await Car.findByIdAndUpdate(req.params.id, req.body, {
+        const carData = { ...req.body };
+
+        // If a new file was uploaded, use its URL
+        if (req.file) {
+            carData.imageUrl = req.file.path;
+        }
+
+        // Handle stringified features
+        if (typeof carData.features === 'string') {
+            try {
+                carData.features = JSON.parse(carData.features);
+            } catch (e) {
+                carData.features = carData.features.split(',').map(f => f.trim());
+            }
+        }
+
+        // Generate name from brand and model if missing
+        if (!carData.name && carData.brand && carData.model) {
+            carData.name = `${carData.brand} ${carData.model}`;
+        }
+
+        car = await Car.findByIdAndUpdate(req.params.id, carData, {
             new: true,
             runValidators: true
         });
 
         sendSuccess(res, car, 'Car updated successfully');
     } catch (error) {
+        console.error('Update Car Error:', error);
         sendError(res, error.message, 400);
     }
 };

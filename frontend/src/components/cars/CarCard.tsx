@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Star, Users, Fuel, Settings2 } from 'lucide-react';
-import { type Car } from '@/data/mockCars';
+import { type Car } from '@/types';
 import { LazyImage } from '@/components/common/LazyImage';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -37,7 +37,7 @@ export function CarCard({ car, index = 0 }: CarCardProps) {
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               wrapperClassName="h-full"
             />
-            
+
             {/* Status Badge */}
             <div className="absolute top-3 left-3">
               {car.available ? (

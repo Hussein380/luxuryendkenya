@@ -9,7 +9,7 @@ import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { getBookingExtras, calculateBookingPrice } from '@/services/bookingService';
 import { getLocations } from '@/services/carService';
-import type { Car } from '@/data/mockCars';
+import { type Car } from '@/types';
 
 interface BookingFormProps {
   car: Car;

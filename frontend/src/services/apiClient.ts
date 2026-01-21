@@ -27,10 +27,11 @@ export async function apiRequest<T>(
 ): Promise<ApiResponse<T>> {
   try {
     const token = typeof window !== 'undefined' ? localStorage.getItem('driveease_token') : null;
+    const isFormData = options?.body instanceof FormData;
     const response = await fetch(`${BASE_URL}${endpoint}`, {
       ...options,
       headers: {
-        'Content-Type': 'application/json',
+        ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
         ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
         ...options?.headers,
       },

@@ -10,7 +10,7 @@ import { CarCardSkeleton } from '@/components/common/Skeleton';
 import { LazyImage } from '@/components/common/LazyImage';
 import { getFeaturedCars, getCategories } from '@/services/carService';
 import { getRecommendations } from '@/services/recommendationService';
-import type { Car } from '@/data/mockCars';
+import type { Car } from '@/types';
 
 export default function Home() {
   const [featuredCars, setFeaturedCars] = useState<Car[]>([]);
@@ -69,7 +69,7 @@ export default function Home() {
                   wrapperClassName="aspect-[16/10]"
                 />
               </div>
-              
+
               {/* Stats Card - Mobile */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
@@ -100,12 +100,12 @@ export default function Home() {
                 <Sparkles className="w-4 h-4" />
                 Premium Car Rental Experience
               </div>
-              
+
               <h1 className="font-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
                 Drive Your Dreams,{' '}
                 <span className="text-gradient">Any Day</span>
               </h1>
-              
+
               <p className="text-base sm:text-lg text-primary-foreground/80 max-w-lg">
                 Explore our premium fleet of vehicles. From eco-friendly electrics to luxury sports cars, find your perfect ride.
               </p>
@@ -155,7 +155,7 @@ export default function Home() {
                   wrapperClassName="aspect-[4/3]"
                 />
               </div>
-              
+
               {/* Stats Card - Desktop */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -217,7 +217,7 @@ export default function Home() {
               <p className="text-muted-foreground mt-1">Find the perfect car for every occasion</p>
             </div>
           </div>
-          
+
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
             {categories.map((cat, i) => (
               <motion.div

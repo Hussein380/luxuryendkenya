@@ -4,14 +4,10 @@
  * Handles all car-related data operations.
  * Currently uses mocked data, structured for easy backend integration.
  * 
- * To connect to real backend:
- * 1. Import apiRequest from apiClient
- * 2. Replace mock data returns with API calls
- * 3. Update response handling as needed
  */
 
-import { mockCars, carCategories, locations, type Car } from '@/data/mockCars';
-import { apiRequest, simulateDelay } from './apiClient';
+import { type Car } from '@/types';
+import { apiRequest } from './apiClient';
 
 export interface CarFilters {
   category?: string;
@@ -141,4 +137,44 @@ export async function searchCars(query: string): Promise<Car[]> {
     return (response.data.cars || []).map(mapCar);
   }
   return [];
+}
+/**
+ * Create a new car
+ */
+export async function createCar(data: FormData): Promise<Car | null> {
+  const response = await apiRequest<any>('/cars', {
+    method: 'POST',
+    body: data,
+    // Note: Don't set Content-Type header, browser will set it with boundary
+  });
+
+  if (response.success && response.data) {
+    return mapCar(response.data);
+  }
+  return null;
+}
+
+/**
+ * Update an existing car
+ */
+export async function updateCar(id: string, data: FormData): Promise<Car | null> {
+  const response = await apiRequest<any>(`/cars/${id}`, {
+    method: 'PUT',
+    body: data,
+  });
+
+  if (response.success && response.data) {
+    return mapCar(response.data);
+  }
+  return null;
+}
+
+/**
+ * Delete a car
+ */
+export async function deleteCar(id: string): Promise<boolean> {
+  const response = await apiRequest<any>(`/cars/${id}`, {
+    method: 'DELETE',
+  });
+  return response.success;
 }

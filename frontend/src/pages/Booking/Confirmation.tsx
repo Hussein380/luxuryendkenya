@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Layout } from '@/components/common/Layout';
 import { LazyImage } from '@/components/common/LazyImage';
-import type { Car } from '@/data/mockCars';
+import type { Car } from '@/types';
 
 interface BookingState {
   car: Car;

@@ -2,16 +2,11 @@
  * Booking Service
  * 
  * Handles all booking-related data operations.
- * Currently uses mocked data, structured for easy backend integration.
- * 
- * To connect to real backend:
- * 1. Import apiRequest from apiClient
- * 2. Replace mock data returns with API calls
- * 3. Update response handling as needed
+ * Connected to real backend API.
  */
 
-import { mockBookings, bookingExtras, type Booking } from '@/data/mockBookings';
-import { simulateDelay } from './apiClient';
+import { type Booking } from '@/types';
+import { apiRequest } from './apiClient';
 
 export interface CreateBookingData {
   carId: string;
@@ -31,22 +26,46 @@ export interface BookingsResponse {
 }
 
 /**
+ * Map backend booking object to frontend booking object
+ */
+const mapBooking = (b: any): Booking => ({
+  id: b._id || b.id,
+  carId: b.car?._id || b.car,
+  carName: b.car?.name || 'Car Name',
+  carImage: b.car?.imageUrl || '',
+  customerName: b.customerName,
+  customerEmail: b.customerEmail,
+  customerPhone: b.customerPhone,
+  pickupDate: b.pickupDate,
+  returnDate: b.returnDate,
+  pickupLocation: b.pickupLocation,
+  returnLocation: b.returnLocation,
+  totalDays: b.totalDays,
+  pricePerDay: b.totalPrice / b.totalDays, // Derived if not in backend
+  totalPrice: b.totalPrice,
+  status: b.status,
+  createdAt: b.createdAt,
+  extras: b.extras || [],
+});
+
+/**
  * Get all bookings
  */
 export async function getBookings(status?: Booking['status']): Promise<BookingsResponse> {
-  await simulateDelay();
-  
-  let bookings = [...mockBookings];
-  
-  if (status) {
-    bookings = bookings.filter(b => b.status === status);
+  const query = status ? `?status=${status}` : '';
+  const response = await apiRequest<any[]>(`/bookings${query}`);
+
+  if (response.success && response.data) {
+    const bookings = response.data.map(mapBooking);
+    return {
+      bookings,
+      total: bookings.length,
+    };
   }
-  
+
   return {
-    bookings: bookings.sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    ),
-    total: bookings.length,
+    bookings: [],
+    total: 0,
   };
 }
 
@@ -54,83 +73,66 @@ export async function getBookings(status?: Booking['status']): Promise<BookingsR
  * Get a single booking by ID
  */
 export async function getBookingById(id: string): Promise<Booking | null> {
-  await simulateDelay();
-  return mockBookings.find(b => b.id === id) || null;
+  const response = await apiRequest<any>(`/bookings/${id}`);
+  if (response.success && response.data) {
+    return mapBooking(response.data);
+  }
+  return null;
 }
 
 /**
  * Create a new booking
  */
-export async function createBooking(data: CreateBookingData): Promise<Booking> {
-  await simulateDelay(500);
-  
-  // Calculate days and price (would come from backend in real app)
-  const pickup = new Date(data.pickupDate);
-  const returnDate = new Date(data.returnDate);
-  const totalDays = Math.ceil((returnDate.getTime() - pickup.getTime()) / (1000 * 60 * 60 * 24));
-  
-  const newBooking: Booking = {
-    id: `BK${String(mockBookings.length + 1).padStart(3, '0')}`,
-    carId: data.carId,
-    carName: 'Car Name', // Would be fetched from car service
-    carImage: '',
-    customerName: data.customerName,
-    customerEmail: data.customerEmail,
-    customerPhone: data.customerPhone,
-    pickupDate: data.pickupDate,
-    returnDate: data.returnDate,
-    pickupLocation: data.pickupLocation,
-    returnLocation: data.returnLocation,
-    totalDays,
-    pricePerDay: 0, // Would be calculated
-    totalPrice: 0,
-    status: 'pending',
-    createdAt: new Date().toISOString(),
-    extras: data.extras,
-  };
-  
-  // In real app, this would be persisted to backend
-  mockBookings.push(newBooking);
-  
-  return newBooking;
+export async function createBooking(data: CreateBookingData): Promise<Booking | null> {
+  const response = await apiRequest<any>('/bookings', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+
+  if (response.success && response.data) {
+    return mapBooking(response.data);
+  }
+
+  return null;
 }
 
 /**
  * Update booking status
  */
 export async function updateBookingStatus(
-  id: string, 
+  id: string,
   status: Booking['status']
 ): Promise<Booking | null> {
-  await simulateDelay();
-  
-  const booking = mockBookings.find(b => b.id === id);
-  if (booking) {
-    booking.status = status;
+  const response = await apiRequest<any>(`/bookings/${id}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  });
+
+  if (response.success && response.data) {
+    return mapBooking(response.data);
   }
-  return booking || null;
+  return null;
 }
 
 /**
  * Cancel a booking
  */
 export async function cancelBooking(id: string): Promise<boolean> {
-  await simulateDelay();
-  
-  const booking = mockBookings.find(b => b.id === id);
-  if (booking && booking.status !== 'completed') {
-    booking.status = 'cancelled';
-    return true;
-  }
-  return false;
+  const response = await apiRequest<any>(`/bookings/${id}`, {
+    method: 'DELETE',
+  });
+  return response.success;
 }
 
 /**
  * Get available extras
  */
 export async function getBookingExtras() {
-  await simulateDelay(100);
-  return bookingExtras;
+  const response = await apiRequest<any[]>('/bookings/extras');
+  if (response.success && response.data) {
+    return response.data;
+  }
+  return [];
 }
 
 /**

@@ -4,8 +4,7 @@
  * Handles AI-powered recommendations and chat functionality.
  */
 
-import { type Recommendation, type AIMessage } from '@/data/mockRecommendations';
-import { type Car } from '@/data/mockCars';
+import { type Recommendation, type AIMessage, type Car } from '@/types';
 import { apiRequest } from './apiClient';
 
 /**
@@ -28,8 +27,8 @@ export async function getRecommendations(): Promise<(Recommendation & { car: Car
       id: `rec-${index}`,
       carId: car._id,
       reason: "Based on our AI's analysis of your preferences and current fleet availability.",
-      tags: [car.category, car.fuelType, "Top Rated"],
-      score: 0.9 + (Math.random() * 0.1), // Simulated relevance score
+      tags: [car.category, car.fuelType, car.transmission],
+      score: car.rating ? car.rating / 5 : 0.9, // Use real rating if available
       car: mapCar(car)
     }));
   }

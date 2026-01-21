@@ -155,16 +155,7 @@ exports.getBookingExtras = async (req, res) => {
     try {
         const extras = await BookingExtra.find({ available: true });
 
-        // Fallback if no extras in DB
-        if (extras.length === 0) {
-            return sendSuccess(res, [
-                { id: 'gps', name: 'GPS Navigation', pricePerDay: 10 },
-                { id: 'child-seat', name: 'Child Seat', pricePerDay: 8 },
-                { id: 'wifi', name: 'Mobile WiFi', pricePerDay: 12 }
-            ]);
-        }
-
-        sendSuccess(res, extras);
+        return sendSuccess(res, extras);
     } catch (error) {
         sendError(res, error.message, 500);
     }

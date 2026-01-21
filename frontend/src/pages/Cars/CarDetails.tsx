@@ -10,7 +10,7 @@ import { LazyImage } from '@/components/common/LazyImage';
 import { Skeleton } from '@/components/common/Skeleton';
 import { BookingForm } from '@/components/booking/BookingForm';
 import { getCarById } from '@/services/carService';
-import type { Car } from '@/data/mockCars';
+import type { Car } from '@/types';
 
 export default function CarDetails() {
   const { id } = useParams<{ id: string }>();
@@ -95,7 +95,7 @@ export default function CarDetails() {
                 className="w-full object-cover"
                 wrapperClassName="aspect-[16/10]"
               />
-              
+
               {/* Badges */}
               <div className="absolute top-4 left-4 flex gap-2">
                 {car.available ? (

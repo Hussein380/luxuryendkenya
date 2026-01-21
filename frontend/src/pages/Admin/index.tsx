@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  Car, 
-  CalendarDays, 
-  DollarSign, 
-  TrendingUp, 
+import {
+  Car,
+  CalendarDays,
+  DollarSign,
+  TrendingUp,
   Users,
   Search,
   Plus,
@@ -30,10 +30,10 @@ import {
 import { Layout } from '@/components/common/Layout';
 import { LazyImage } from '@/components/common/LazyImage';
 import { Skeleton } from '@/components/common/Skeleton';
-import { getCars } from '@/services/carService';
+import { getCars, deleteCar } from '@/services/carService';
 import { getBookings } from '@/services/bookingService';
-import type { Car as CarType } from '@/data/mockCars';
-import type { Booking } from '@/data/mockBookings';
+import { AdminCarModal } from '@/components/admin/AdminCarModal';
+import type { Car as CarType, Booking } from '@/types';
 
 const statusConfig: Record<Booking['status'], { label: string; color: string; icon: typeof Check }> = {
   pending: { label: 'Pending', color: 'bg-warning/10 text-warning', icon: Clock },
@@ -49,21 +49,46 @@ export default function Admin() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedCar, setSelectedCar] = useState<CarType | null>(null);
+
+  const loadData = async () => {
+    setIsLoading(true);
+    try {
+      const [carsData, bookingsData] = await Promise.all([
+        getCars(),
+        getBookings(),
+      ]);
+      setCars(carsData.cars);
+      setBookings(bookingsData.bookings);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        const [carsData, bookingsData] = await Promise.all([
-          getCars(),
-          getBookings(),
-        ]);
-        setCars(carsData.cars);
-        setBookings(bookingsData.bookings);
-      } finally {
-        setIsLoading(false);
-      }
-    };
     loadData();
   }, []);
+
+  const handleAddCar = () => {
+    setSelectedCar(null);
+    setIsModalOpen(true);
+  };
+
+  const handleEditCar = (car: CarType) => {
+    setSelectedCar(car);
+    setIsModalOpen(true);
+  };
+
+  const handleDeleteCar = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this car?')) {
+      const success = await deleteCar(id);
+      if (success) {
+        loadData();
+      }
+    }
+  };
 
   const stats = [
     {
@@ -116,7 +141,10 @@ export default function Admin() {
             <h1 className="font-display text-3xl font-bold">Admin Dashboard</h1>
             <p className="text-muted-foreground">Manage your fleet and bookings</p>
           </div>
-          <Button className="gradient-accent text-accent-foreground border-0">
+          <Button
+            className="gradient-accent text-accent-foreground border-0"
+            onClick={handleAddCar}
+          >
             <Plus className="w-4 h-4 mr-2" />
             Add New Car
           </Button>
@@ -274,63 +302,80 @@ export default function Admin() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {isLoading
                 ? Array.from({ length: 6 }).map((_, i) => (
-                    <Card key={i} className="p-4">
-                      <Skeleton className="h-32 w-full mb-4" />
-                      <Skeleton className="h-6 w-3/4 mb-2" />
-                      <Skeleton className="h-4 w-1/2" />
-                    </Card>
-                  ))
+                  <Card key={i} className="p-4">
+                    <Skeleton className="h-32 w-full mb-4" />
+                    <Skeleton className="h-6 w-3/4 mb-2" />
+                    <Skeleton className="h-4 w-1/2" />
+                  </Card>
+                ))
                 : filteredCars.map((car, i) => (
-                    <motion.div
-                      key={car.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.05 }}
-                    >
-                      <Card className="overflow-hidden">
-                        <div className="relative h-40">
-                          <LazyImage
-                            src={car.imageUrl}
-                            alt={car.name}
-                            className="w-full h-full object-cover"
-                            wrapperClassName="h-full"
-                          />
-                          <div className="absolute top-2 right-2">
-                            <Badge
-                              className={
-                                car.available
-                                  ? 'bg-success text-success-foreground border-0'
-                                  : 'bg-muted text-muted-foreground'
-                              }
-                            >
-                              {car.available ? 'Available' : 'Unavailable'}
-                            </Badge>
-                          </div>
+                  <motion.div
+                    key={car.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                  >
+                    <Card className="overflow-hidden">
+                      <div className="relative h-40">
+                        <LazyImage
+                          src={car.imageUrl}
+                          alt={car.name}
+                          className="w-full h-full object-cover"
+                          wrapperClassName="h-full"
+                        />
+                        <div className="absolute top-2 right-2">
+                          <Badge
+                            className={
+                              car.available
+                                ? 'bg-success text-success-foreground border-0'
+                                : 'bg-muted text-muted-foreground'
+                            }
+                          >
+                            {car.available ? 'Available' : 'Unavailable'}
+                          </Badge>
                         </div>
-                        <div className="p-4">
-                          <div className="flex items-start justify-between mb-2">
-                            <div>
-                              <h3 className="font-display font-semibold">{car.name}</h3>
-                              <p className="text-sm text-muted-foreground capitalize">{car.category}</p>
-                            </div>
-                            <p className="font-bold text-accent">${car.pricePerDay}/day</p>
+                      </div>
+                      <div className="p-4">
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <h3 className="font-display font-semibold">{car.name}</h3>
+                            <p className="text-sm text-muted-foreground capitalize">{car.category}</p>
                           </div>
-                          <div className="flex gap-2 mt-4">
-                            <Button variant="outline" size="sm" className="flex-1">
-                              <Edit className="w-4 h-4 mr-1" />
-                              Edit
-                            </Button>
-                            <Button variant="ghost" size="sm">
-                              <Eye className="w-4 h-4" />
-                            </Button>
-                          </div>
+                          <p className="font-bold text-accent">${car.pricePerDay}/day</p>
                         </div>
-                      </Card>
-                    </motion.div>
-                  ))}
+                        <div className="flex gap-2 mt-4">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => handleEditCar(car)}
+                          >
+                            <Edit className="w-4 h-4 mr-1" />
+                            Edit
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive hover:bg-destructive/10"
+                            onClick={() => handleDeleteCar(car.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </Card>
+                  </motion.div>
+                ))}
             </div>
           </TabsContent>
         </Tabs>
+
+        <AdminCarModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          car={selectedCar}
+          onSuccess={loadData}
+        />
       </div>
     </Layout>
   );

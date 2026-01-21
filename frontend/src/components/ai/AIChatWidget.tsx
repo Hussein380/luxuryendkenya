@@ -4,7 +4,7 @@ import { MessageCircle, X, Send, Bot, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { getAIChatResponse, getInitialMessage } from '@/services/recommendationService';
-import type { AIMessage } from '@/data/mockRecommendations';
+import type { AIMessage } from '@/types';
 import { cn } from '@/lib/utils';
 
 export function AIChatWidget() {
@@ -149,7 +149,7 @@ export function AIChatWidget() {
                   </div>
                 </motion.div>
               ))}
-              
+
               {isLoading && (
                 <motion.div
                   initial={{ opacity: 0 }}

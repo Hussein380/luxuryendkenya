@@ -11,6 +11,7 @@ const {
 } = require('../controllers/cars.controller');
 
 const { protect, restrictTo } = require('../middleware/auth.middleware');
+const { uploadCarImage } = require('../middleware/upload.middleware');
 
 const router = express.Router();
 
@@ -22,8 +23,8 @@ router.get('/locations', getLocations);
 router.get('/:id', getCarById);
 
 // Admin routes
-router.post('/', protect, restrictTo('admin'), createCar);
-router.put('/:id', protect, restrictTo('admin'), updateCar);
+router.post('/', protect, restrictTo('admin'), uploadCarImage, createCar);
+router.put('/:id', protect, restrictTo('admin'), uploadCarImage, updateCar);
 router.delete('/:id', protect, restrictTo('admin'), deleteCar);
 
 module.exports = router;
