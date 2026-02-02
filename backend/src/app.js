@@ -9,6 +9,9 @@ const { globalLimiter } = require('./middleware/rateLimit.middleware');
 
 const app = express();
 
+// Trust proxy (required for Vercel/reverse proxies)
+app.set('trust proxy', 1);
+
 // Middleware
 app.use(helmet()); // Security headers
 app.use(cors()); // Enable CORS
