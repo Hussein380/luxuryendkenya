@@ -2,12 +2,28 @@
  * API Client Configuration
  *
  * - Dev: localhost:5000/api
- * - Vercel (full-stack): /api (same origin, set VITE_API_URL=/api or leave unset)
- * - Separate backend: set VITE_API_URL to your backend URL (e.g. https://api.example.com/api)
+ * - Vercel (full-stack): /api (same origin)
+ * - Separate backend: set VITE_API_URL to your backend URL
  */
-const BASE_URL =
-  import.meta.env.VITE_API_URL ??
-  (import.meta.env.DEV ? 'http://localhost:5000/api' : '/api');
+const getBaseUrl = (): string => {
+  // Explicit env var takes priority
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  
+  // Check if running in browser and on localhost
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return 'http://localhost:5000/api';
+    }
+  }
+  
+  // Production: use relative path (same origin on Vercel)
+  return '/api';
+};
+
+const BASE_URL = getBaseUrl();
 
 export interface ApiResponse<T> {
   data: T;
