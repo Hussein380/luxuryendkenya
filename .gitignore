@@ -11,10 +11,15 @@ node_modules
 dist
 dist-ssr
 *.local
-# Environment files
+# Environment files (NEVER commit real .env - contains secrets)
 .env
 .env.local
+.env.development
+.env.production
 .env.*.local
+backend/.env
+frontend/.env
+api/.env
 
 # Backend dev scripts (tests, local runners - do not push)
 backend/tests/

@@ -32,14 +32,15 @@ npm run dev
 
 The frontend will be available at `http://localhost:8080`
 
-For more details, see [docs/FRONTEND_DOCUMENTATION.md](docs/FRONTEND_DOCUMENTATION.md)
+For more details, see `docs/FRONTEND_DOCUMENTATION.md` (local only – docs folder is gitignored)
 
 ## Documentation
 
-All project documentation is located in the `docs/` folder:
+All project documentation is in the `docs/` folder (gitignored – local only):
 
-- **README.md** - Original project setup and overview
-- **FRONTEND_DOCUMENTATION.md** - Complete frontend architecture, components, services, and backend integration guide
+- **DEPLOYMENT.md** - Full-stack Vercel deployment guide
+- **IMPLEMENTATION_SUMMARY.md** - Implementation notes
+- **FRONTEND_DOCUMENTATION.md** - Frontend architecture and integration guide
 
 ## Technologies
 
@@ -54,12 +55,4 @@ This project is organized with frontend and backend separation in mind. The fron
 
 ## Deployment (Vercel)
 
-The frontend is configured for Vercel deployment:
-
-1. Push to GitHub
-2. Import project at [vercel.com](https://vercel.com)
-3. Set **Root Directory** to `frontend`
-4. Add env var: `VITE_API_URL` = your backend API URL (e.g. `https://your-api.railway.app/api`)
-5. Deploy
-
-The backend (Express + MongoDB + Redis) must be hosted separately (Railway, Render, Fly.io). See [DEPLOYMENT.md](DEPLOYMENT.md) for full details.
+Full-stack deployment: push to GitHub, import at [vercel.com](https://vercel.com), set Root Directory to `.`, add env vars, deploy. See `docs/DEPLOYMENT.md` for full details (local only – docs folder is gitignored).
