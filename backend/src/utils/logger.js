@@ -1,5 +1,4 @@
 const winston = require('winston');
-const path = require('path');
 
 // Define log levels
 const levels = {
@@ -44,26 +43,19 @@ const fileFormat = winston.format.combine(
     )
 );
 
-// Define transports
-const transports = [
-    // Console transport
-    new winston.transports.Console({
-        format,
-    }),
-    // Error log file (Only errors)
-    new winston.transports.File({
-        filename: 'logs/error.log',
-        level: 'error',
-        format: fileFormat,
-    }),
-    // All logs file
-    new winston.transports.File({
-        filename: 'logs/combined.log',
-        format: fileFormat,
-    }),
-];
+// Define transports - on Vercel/serverless, console only (no writable filesystem)
+const transports = [new winston.transports.Console({ format })];
+if (!process.env.VERCEL) {
+    try {
+        transports.push(
+            new winston.transports.File({ filename: 'logs/error.log', level: 'error', format: fileFormat }),
+            new winston.transports.File({ filename: 'logs/combined.log', format: fileFormat })
+        );
+    } catch (_) {
+        // Fallback to console-only if file transport fails
+    }
+}
 
-// Create the logger
 const logger = winston.createLogger({
     level: level(),
     levels,

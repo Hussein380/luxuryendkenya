@@ -11,12 +11,14 @@ try {
 
 let connectDB;
 let app;
+let loadError = null;
 
 try {
     connectDB = require('../backend/src/config/database');
     app = require('../backend/src/app');
 } catch (err) {
-    console.error('Failed to load backend:', err.message);
+    loadError = err;
+    console.error('Failed to load backend:', err.message, err.stack);
 }
 
 let dbPromise = null;
@@ -26,7 +28,7 @@ module.exports = async (req, res) => {
         if (!app) {
             return res.status(500).json({
                 success: false,
-                error: 'Backend failed to load. Check Vercel function logs.',
+                error: loadError ? loadError.message : 'Backend failed to load.',
             });
         }
         if (!dbPromise) {
