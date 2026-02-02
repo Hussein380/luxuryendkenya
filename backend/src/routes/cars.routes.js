@@ -18,11 +18,11 @@ const cache = require('../middleware/cache.middleware');
 
 const router = express.Router();
 
-// Public routes
-router.get('/', cache(300), getCars); // Cache list for 5 mins
-router.get('/featured', cache(3600), getFeaturedCars); // Cache featured for 1 hour
-router.get('/categories', cache(86400), getCategories); // Cache categories for 1 day
-router.get('/locations', cache(86400), getLocations); // Cache locations for 1 day
+// Public routes (cache temporarily disabled for debugging)
+router.get('/', getCars);
+router.get('/featured', getFeaturedCars);
+router.get('/categories', getCategories);
+router.get('/locations', getLocations);
 router.get('/:id', getCarById);
 
 // Admin routes
