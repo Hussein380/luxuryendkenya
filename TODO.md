@@ -3,12 +3,12 @@
 ## High Priority
 
 ### Recommendation Algorithm
-- [ ] Implement personalized car recommendations
-- [ ] Track user preferences (category, price range, features)
-- [ ] Analyze booking history for returning users
-- [ ] Consider: collaborative filtering ("users who booked X also booked Y")
-- [ ] Add view/click tracking for better suggestions
-- [ ] Current state: Just sorts by rating (no personalization)
+- [x] Implement personalized car recommendations (DONE)
+- [x] Track user preferences (category, price range, features) - uses User.preferredCategorySlugs
+- [x] Analyze booking history for returning users (DONE)
+- [ ] Consider: collaborative filtering ("users who booked X also booked Y") - future
+- [ ] Add view/click tracking for better suggestions - future
+- [x] Current state: Personalized for logged-in users, diverse for guests
 
 ## Medium Priority
 
