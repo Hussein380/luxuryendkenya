@@ -55,33 +55,44 @@ exports.createBooking = async (req, res) => {
             totalPrice
         });
 
-        // 4. Send "received" email to client (non-blocking)
-        addEmailJob('booking-received', {
-            bookingId: booking.bookingId,
-            customerName,
-            customerEmail,
-            pickupDate,
-            returnDate,
-            pickupLocation,
-            totalPrice
-        });
-
-        // 5. Send "new booking" email to admin (non-blocking)
-        if (ADMIN_EMAIL) {
-            const car = await Car.findById(carId).select('name').lean();
-            addEmailJob('admin-new-booking', {
-                to: ADMIN_EMAIL,
+        // 4. Send emails (await on Vercel to prevent premature function termination)
+        const emailPromises = [];
+        
+        // Send "received" email to client
+        emailPromises.push(
+            addEmailJob('booking-received', {
                 bookingId: booking.bookingId,
                 customerName,
                 customerEmail,
-                customerPhone,
-                carName: car?.name || 'N/A',
                 pickupDate,
                 returnDate,
                 pickupLocation,
                 totalPrice
-            });
+            })
+        );
+
+        // Send "new booking" email to admin
+        if (ADMIN_EMAIL) {
+            const car = await Car.findById(carId).select('name').lean();
+            emailPromises.push(
+                addEmailJob('admin-new-booking', {
+                    to: ADMIN_EMAIL,
+                    bookingId: booking.bookingId,
+                    customerName,
+                    customerEmail,
+                    customerPhone,
+                    carName: car?.name || 'N/A',
+                    pickupDate,
+                    returnDate,
+                    pickupLocation,
+                    totalPrice
+                })
+            );
         }
+
+        // Wait for emails on Vercel (serverless needs to complete before termination)
+        // On local with BullMQ, this just waits for job to be added (fast)
+        await Promise.allSettled(emailPromises);
 
         sendSuccess(res, booking, 'Booking created successfully', 201);
     } catch (error) {
@@ -151,7 +162,7 @@ exports.updateBookingStatus = async (req, res) => {
 
         // When admin confirms, send "Booking Confirmed!" email to client
         if (status === 'confirmed') {
-            addEmailJob('booking-confirmation', {
+            await addEmailJob('booking-confirmation', {
                 bookingId: booking.bookingId,
                 customerName: booking.customerName,
                 customerEmail: booking.customerEmail,
