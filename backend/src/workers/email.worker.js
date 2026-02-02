@@ -5,6 +5,10 @@ const { connection } = require('../config/queue.config');
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+// Contact info for emails
+const CONTACT_PHONE = '0725 996 394';
+const CONTACT_EMAIL = 'huznigarane@gmail.com';
+
 // Email templates
 const emailTemplates = {
     welcome: (data) => ({
@@ -14,6 +18,7 @@ const emailTemplates = {
             <p>Thank you for joining DriveEase. We're excited to have you on board.</p>
             <p>Start exploring our premium car collection and find your perfect ride.</p>
             <br/>
+            <p>Questions? Contact us:<br/>📞 ${CONTACT_PHONE}<br/>✉️ ${CONTACT_EMAIL}</p>
             <p>Best regards,<br/>The DriveEase Team</p>
         `,
     }),
@@ -31,6 +36,7 @@ const emailTemplates = {
             </ul>
             <p>Total: <strong>KES ${data.totalPrice.toLocaleString()}</strong></p>
             <br/>
+            <p>Need help? Contact us:<br/>📞 ${CONTACT_PHONE}<br/>✉️ ${CONTACT_EMAIL}</p>
             <p>Safe travels!<br/>The DriveEase Team</p>
         `,
     }),

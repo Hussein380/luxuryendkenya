@@ -5,8 +5,8 @@ const testBookings = async () => {
     const bookingData = {
         carId,
         customerName: 'Booking Tester',
-        customerEmail: 'tester@example.com',
-        customerPhone: '1234567890',
+        customerEmail: 'consultancysafehaven@gmail.com',
+        customerPhone: '0725996394',
         pickupDate: new Date(Date.now() + 86400000), // Tomorrow
         returnDate: new Date(Date.now() + 86400000 * 3), // +3 days
         pickupLocation: 'Airport',

@@ -211,7 +211,7 @@ export function BookingForm({ car }: BookingFormProps) {
               name="customerEmail"
               value={formData.customerEmail}
               onChange={handleChange}
-              placeholder="john@example.com"
+              placeholder="your@email.com"
               required
             />
           </div>
@@ -223,7 +223,7 @@ export function BookingForm({ car }: BookingFormProps) {
               name="customerPhone"
               value={formData.customerPhone}
               onChange={handleChange}
-              placeholder="+1 234 567 8900"
+              placeholder="0725 996 394"
             />
           </div>
         </div>

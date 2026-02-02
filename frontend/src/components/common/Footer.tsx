@@ -61,15 +61,15 @@ export function Footer() {
             <ul className="space-y-3 text-sm">
               <li className="flex items-center gap-2 text-primary-foreground/70">
                 <MapPin className="w-4 h-4" />
-                123 Drive Street, Auto City
+                Nairobi, Kenya
               </li>
               <li className="flex items-center gap-2 text-primary-foreground/70">
                 <Phone className="w-4 h-4" />
-                +1 (555) 123-4567
+                <a href="tel:+254725996394" className="hover:text-primary-foreground transition-colors">0725 996 394</a>
               </li>
               <li className="flex items-center gap-2 text-primary-foreground/70">
                 <Mail className="w-4 h-4" />
-                hello@driveease.com
+                <a href="mailto:huznigarane@gmail.com" className="hover:text-primary-foreground transition-colors">huznigarane@gmail.com</a>
               </li>
             </ul>
           </div>

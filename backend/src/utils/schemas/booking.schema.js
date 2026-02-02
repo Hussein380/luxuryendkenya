@@ -21,9 +21,8 @@ const bookingCreateSchema = Joi.object({
     }),
     pickupLocation: Joi.string().required(),
     returnLocation: Joi.string().required(),
-    extras: Joi.array().items(Joi.string()).default([]),
-    totalDays: Joi.number().integer().positive().required(),
-    totalPrice: Joi.number().positive().required()
+    extras: Joi.array().items(Joi.string()).default([])
+    // totalDays and totalPrice are computed server-side, not sent by client
 });
 
 const bookingStatusSchema = Joi.object({
