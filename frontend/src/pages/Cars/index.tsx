@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Layout } from '@/components/common/Layout';
+import { Button } from '@/components/ui/button';
 import { CarCard } from '@/components/cars/CarCard';
 import { CarFilters } from '@/components/cars/CarFilters';
 import { CarCardSkeleton } from '@/components/common/Skeleton';
@@ -12,29 +13,49 @@ export default function Cars() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [cars, setCars] = useState<Car[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
   const [filters, setFilters] = useState<CarFiltersType>(() => {
     // Initialize filters from URL params
     const category = searchParams.get('category');
-    return category ? { category } : {};
+    const search = searchParams.get('search');
+    const initialFilters: CarFiltersType = {};
+    if (category) initialFilters.category = category;
+    if (search) initialFilters.search = search;
+    return initialFilters;
   });
 
   const [error, setError] = useState<string | null>(null);
 
+  const loadCars = async (currentPage: number, append = false) => {
+    if (append) setIsLoadingMore(true);
+    else setIsLoading(true);
+
+    setError(null);
+    try {
+      // Pass the page to the service
+      const result = await getCars({ ...filters, page: currentPage } as any);
+      setCars(append ? [...cars, ...result.cars] : result.cars);
+      setTotal(result.total);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load cars');
+    } finally {
+      setIsLoading(false);
+      setIsLoadingMore(false);
+    }
+  };
+
   useEffect(() => {
-    const loadCars = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const result = await getCars(filters);
-        setCars(result.cars);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load cars');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    loadCars();
+    setPage(1);
+    loadCars(1, false);
   }, [filters]);
+
+  const handleLoadMore = () => {
+    const nextPage = page + 1;
+    setPage(nextPage);
+    loadCars(nextPage, true);
+  };
 
   const handleFilterChange = (newFilters: CarFiltersType) => {
     setFilters(newFilters);
@@ -66,7 +87,7 @@ export default function Cars() {
           <CarFilters
             filters={filters}
             onFilterChange={handleFilterChange}
-            totalResults={cars.length}
+            totalResults={total}
           />
         </div>
 
@@ -77,9 +98,24 @@ export default function Cars() {
             : cars.map((car, i) => <CarCard key={car.id} car={car} index={i} />)}
         </div>
 
+        {/* Load More Button */}
+        {!isLoading && cars.length < total && (
+          <div className="mt-12 flex justify-center">
+            <Button
+              onClick={handleLoadMore}
+              disabled={isLoadingMore}
+              variant="outline"
+              size="lg"
+              className="min-w-[200px]"
+            >
+              {isLoadingMore ? 'Loading...' : 'Load More Cars'}
+            </Button>
+          </div>
+        )}
+
         {/* Error State */}
         {error && (
-          <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive">
+          <div className="mt-8 rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive">
             <p className="font-medium">Could not load cars</p>
             <p className="text-sm mt-1">{error}</p>
           </div>

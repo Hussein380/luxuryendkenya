@@ -6,9 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Layout } from '@/components/common/Layout';
-import { LazyImage } from '@/components/common/LazyImage';
 import { Skeleton } from '@/components/common/Skeleton';
 import { BookingForm } from '@/components/booking/BookingForm';
+import { ImageGallery } from '@/components/cars/ImageGallery';
 import { getCarById } from '@/services/carService';
 import { formatPrice } from '@/lib/currency';
 import type { Car } from '@/types';
@@ -84,27 +84,25 @@ export default function CarDetails() {
         <div className="grid lg:grid-cols-5 gap-8">
           {/* Left Column - Car Details */}
           <div className="lg:col-span-3 space-y-6">
-            {/* Main Image */}
+            {/* Car Gallery */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="relative rounded-2xl overflow-hidden"
+              className="relative"
             >
-              <LazyImage
-                src={car.imageUrl}
+              <ImageGallery
+                images={car.images && car.images.length > 0 ? car.images : [car.imageUrl]}
                 alt={car.name}
-                className="w-full object-cover"
-                wrapperClassName="aspect-[16/10]"
               />
 
-              {/* Badges */}
-              <div className="absolute top-4 left-4 flex gap-2">
+              {/* Status Badges - Overlay on top of gallery if needed, but gallery has its own padding/dots */}
+              <div className="absolute top-4 left-4 flex gap-2 z-10">
                 {car.available ? (
-                  <Badge className="bg-success text-success-foreground border-0">Available</Badge>
+                  <Badge className="bg-success text-success-foreground border-0 shadow-sm">Available</Badge>
                 ) : (
-                  <Badge variant="secondary">Unavailable</Badge>
+                  <Badge variant="secondary" className="shadow-sm">Unavailable</Badge>
                 )}
-                <Badge variant="outline" className="bg-card/80 backdrop-blur-sm capitalize">
+                <Badge variant="outline" className="bg-card/80 backdrop-blur-sm capitalize shadow-sm">
                   {car.category}
                 </Badge>
               </div>

@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const Car = require('./src/models/Car');
 const Category = require('./src/models/Category');
 const { NAIROBI_LOCATIONS } = require('./src/config/locations.config');
+const { clearCarCache } = require('./src/config/redis.config');
 
 // Categories with Kenyan context
 const categories = [
@@ -27,6 +28,11 @@ const cars = [
         category: 'economy',
         pricePerDay: 3500,
         imageUrl: 'https://images.unsplash.com/photo-1609521263047-f8f205293f24?w=800&auto=format&fit=crop',
+        images: [
+            'https://images.unsplash.com/photo-1609521263047-f8f205293f24?w=800&auto=format&fit=crop',
+            'https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?w=800&auto=format&fit=crop',
+            'https://images.unsplash.com/photo-1494976388531-d11e99518c01?w=800&auto=format&fit=crop'
+        ],
         seats: 5,
         transmission: 'automatic',
         fuelType: 'petrol',
@@ -139,6 +145,10 @@ const cars = [
         category: 'sedan',
         pricePerDay: 7500,
         imageUrl: 'https://images.unsplash.com/photo-1621007947382-bb3c3994e3fb?w=800&auto=format&fit=crop',
+        images: [
+            'https://images.unsplash.com/photo-1621007947382-bb3c3994e3fb?w=800&auto=format&fit=crop',
+            'https://images.unsplash.com/photo-1619767886558-efdc259cde1a?w=800&auto=format&fit=crop'
+        ],
         seats: 5,
         transmission: 'automatic',
         fuelType: 'hybrid',
@@ -178,6 +188,11 @@ const cars = [
         category: 'suv',
         pricePerDay: 8500,
         imageUrl: 'https://images.unsplash.com/photo-1568844293986-8c8c5f3b3b0e?w=800&auto=format&fit=crop',
+        images: [
+            'https://images.unsplash.com/photo-1568844293986-8c8c5f3b3b0e?w=800&auto=format&fit=crop',
+            'https://images.unsplash.com/photo-1542362567-b05486f69246?w=800&auto=format&fit=crop',
+            'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&auto=format&fit=crop'
+        ],
         seats: 5,
         transmission: 'automatic',
         fuelType: 'hybrid',
@@ -271,6 +286,11 @@ const cars = [
         category: 'safari',
         pricePerDay: 15000,
         imageUrl: 'https://images.unsplash.com/photo-1594502184342-2e12f877aa73?w=800&auto=format&fit=crop',
+        images: [
+            'https://images.unsplash.com/photo-1594502184342-2e12f877aa73?w=800&auto=format&fit=crop',
+            'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?w=800&auto=format&fit=crop',
+            'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?w=800&auto=format&fit=crop'
+        ],
         seats: 7,
         transmission: 'automatic',
         fuelType: 'diesel',
@@ -348,6 +368,11 @@ const cars = [
         category: 'luxury',
         pricePerDay: 18000,
         imageUrl: 'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=800&auto=format&fit=crop',
+        images: [
+            'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=800&auto=format&fit=crop',
+            'https://images.unsplash.com/photo-1617469767053-d3b523a0b982?w=800&auto=format&fit=crop',
+            'https://images.unsplash.com/photo-1605559424843-9e4c228bf1c2?w=800&auto=format&fit=crop'
+        ],
         seats: 5,
         transmission: 'automatic',
         fuelType: 'petrol',
@@ -496,6 +521,11 @@ const cars = [
         category: 'pickup',
         pricePerDay: 9000,
         imageUrl: 'https://images.unsplash.com/photo-1612544448445-b8232cff3b6c?w=800&auto=format&fit=crop',
+        images: [
+            'https://images.unsplash.com/photo-1612544448445-b8232cff3b6c?w=800&auto=format&fit=crop',
+            'https://images.unsplash.com/photo-1583121274602-3e2820c69888?w=800&auto=format&fit=crop',
+            'https://images.unsplash.com/photo-1494905998402-395d579af36f?w=800&auto=format&fit=crop'
+        ],
         seats: 5,
         transmission: 'automatic',
         fuelType: 'diesel',
@@ -564,6 +594,11 @@ const seedKenyaFleet = async () => {
         await Car.create(cars);
         console.log(`   ✅ ${cars.length} cars created`);
 
+        // Clear cache
+        console.log('🧹 Clearing car cache...');
+        await clearCarCache();
+        console.log('   ✅ Cache cleared');
+
         // Summary
         console.log('\n📊 FLEET SUMMARY:');
         console.log('─'.repeat(40));
@@ -581,7 +616,7 @@ const seedKenyaFleet = async () => {
 
         console.log('\n✅ Kenya fleet seeded successfully!');
         console.log('🌐 Visit http://localhost:8080 to see the fleet');
-        
+
         process.exit(0);
     } catch (error) {
         console.error('❌ Error seeding data:', error);

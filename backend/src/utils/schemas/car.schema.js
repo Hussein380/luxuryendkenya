@@ -13,7 +13,8 @@ const carCreateSchema = Joi.object({
     description: Joi.string().required(),
     features: Joi.any(), // Can be string or array due to FormData handling
     available: Joi.boolean().default(true),
-    imageUrl: Joi.string().optional() // Provided by multipart/cloudinary
+    imageUrl: Joi.string().optional(), // Provided by multipart/cloudinary
+    images: Joi.array().items(Joi.string()).optional()
 });
 
 const carUpdateSchema = Joi.object({
@@ -30,6 +31,7 @@ const carUpdateSchema = Joi.object({
     features: Joi.any(),
     available: Joi.boolean(),
     imageUrl: Joi.string(),
+    images: Joi.array().items(Joi.string()),
     name: Joi.string()
 });
 

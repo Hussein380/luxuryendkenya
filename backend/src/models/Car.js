@@ -34,6 +34,10 @@ const carSchema = new mongoose.Schema({
         type: String,
         required: [true, 'Please add an image URL']
     },
+    images: {
+        type: [String],
+        default: []
+    },
     seats: {
         type: Number,
         required: [true, 'Please add number of seats']

@@ -45,7 +45,7 @@ exports.getCars = async (req, res) => {
 
         // Pagination
         const page = parseInt(req.query.page, 10) || 1;
-        const limit = parseInt(req.query.limit, 10) || 12;
+        const limit = parseInt(req.query.limit, 10) || 24;
         const startIndex = (page - 1) * limit;
         const total = await Car.countDocuments(JSON.parse(queryStr));
 
@@ -87,7 +87,7 @@ exports.getFeaturedCars = async (req, res) => {
     try {
         const limit = parseInt(req.query.limit, 10) || 6;
         const now = new Date();
-        
+
         // Step 1: Get admin-featured cars (not expired)
         const featuredQuery = {
             isFeatured: true,
@@ -97,11 +97,11 @@ exports.getFeaturedCars = async (req, res) => {
                 { featuredUntil: { $gte: now } }
             ]
         };
-        
+
         const adminFeatured = await Car.find(featuredQuery)
             .sort('-featuredRank -createdAt')
             .limit(limit);
-        
+
         // Step 2: If we need more, fill with top-rated
         let cars = adminFeatured;
         if (cars.length < limit) {
@@ -113,10 +113,10 @@ exports.getFeaturedCars = async (req, res) => {
             })
                 .sort('-rating')
                 .limit(limit - cars.length);
-            
+
             cars = [...cars, ...topRated];
         }
-        
+
         sendSuccess(res, cars);
     } catch (error) {
         sendError(res, error.message, 500);
@@ -132,14 +132,14 @@ exports.getCategories = async (req, res) => {
         const categories = await Category.find({ isActive: true })
             .select('slug name icon sortOrder')
             .sort('sortOrder name');
-        
+
         // Map to frontend format: {id, name, icon}
         const mapped = categories.map(cat => ({
             id: cat.slug,
             name: cat.name,
             icon: cat.icon
         }));
-        
+
         sendSuccess(res, mapped);
     } catch (error) {
         sendError(res, error.message, 500);

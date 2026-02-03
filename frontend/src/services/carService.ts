@@ -19,6 +19,9 @@ export interface CarFilters {
   seats?: number;
   available?: boolean;
   search?: string;
+  page?: number;
+  limit?: number;
+  sort?: string;
 }
 
 export interface CarsResponse {
@@ -107,12 +110,12 @@ export async function getCategories(): Promise<{ id: string; name: string; icon:
   if (response.success && response.data) {
     // Handle both direct array and nested response (in case of cached data)
     let cats = response.data;
-    
+
     // If it's nested (cached old response format), unwrap it
     if (cats && typeof cats === 'object' && !Array.isArray(cats) && cats.data) {
       cats = cats.data;
     }
-    
+
     // Ensure we have an array
     if (Array.isArray(cats)) {
       // If it's an array of strings (old format), convert to objects
