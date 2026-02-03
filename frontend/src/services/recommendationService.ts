@@ -39,10 +39,13 @@ export async function getRecommendations(): Promise<(Recommendation & { car: Car
 /**
  * Get AI chat response from Gemini Backend
  */
-export async function getAIChatResponse(message: string): Promise<string> {
+export async function getAIChatResponse(message: string, history: AIMessage[] = []): Promise<string> {
+  // Only send the relevant parts of the history (role and content)
+  const formattedHistory = history.map(({ role, content }) => ({ role, content }));
+
   const response = await apiRequest<{ response: string }>('/ai/chat', {
     method: 'POST',
-    body: JSON.stringify({ message }),
+    body: JSON.stringify({ message, history: formattedHistory }),
   });
 
   if (response.success && response.data?.response) {
@@ -53,13 +56,14 @@ export async function getAIChatResponse(message: string): Promise<string> {
 }
 
 /**
- * Generate initial AI greeting
+ * Get AI-generated opening greeting (no hardcoded text)
  */
-export function getInitialMessage(): AIMessage {
-  return {
-    id: '1',
-    role: 'assistant',
-    content: "Hello! I'm your Sol Travel assistant. How can I help you find the perfect car today?",
-    timestamp: new Date().toISOString(),
-  };
+export async function getAIGreeting(): Promise<string> {
+  const response = await apiRequest<{ response: string }>('/ai/greeting');
+
+  if (response.success && response.data?.response) {
+    return response.data.response;
+  }
+
+  return response.error || "Hi! How can I help you today?";
 }
