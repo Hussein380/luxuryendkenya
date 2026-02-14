@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import type { Car } from '@/types';
 import { createCar, updateCar, getCategories, getLocations } from '@/services/carService';
+import { LocationAutocomplete } from '@/components/common/LocationAutocomplete';
 
 interface AdminCarModalProps {
     isOpen: boolean;
@@ -427,17 +428,11 @@ export function AdminCarModal({ isOpen, onClose, car, onSuccess }: AdminCarModal
 
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Pickup Location (Nairobi)</label>
-                                    <select
-                                        className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                    <LocationAutocomplete
                                         value={formData.location}
-                                        onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                                        required
-                                    >
-                                        <option value="">Select location</option>
-                                        {locations.map((loc) => (
-                                            <option key={loc} value={loc}>{loc}</option>
-                                        ))}
-                                    </select>
+                                        onChange={(val) => setFormData({ ...formData, location: val })}
+                                        placeholder="Select pickup location"
+                                    />
                                 </div>
 
                                 <div className="space-y-2">

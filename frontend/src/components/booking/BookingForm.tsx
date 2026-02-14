@@ -11,6 +11,7 @@ import { getBookingExtras, calculateBookingPrice } from '@/services/bookingServi
 import { getLocations, getUnavailableDates, checkDateAvailability, type UnavailableDateRange } from '@/services/carService';
 import { formatPrice } from '@/lib/currency';
 import { type Car } from '@/types';
+import { LocationAutocomplete } from '@/components/common/LocationAutocomplete';
 
 interface BookingFormProps {
   car: Car;
@@ -36,7 +37,7 @@ export function BookingForm({ car }: BookingFormProps) {
   useEffect(() => {
     const loadData = async () => {
       const [locs, exts, bookedDates] = await Promise.all([
-        getLocations(), 
+        getLocations(),
         getBookingExtras(),
         getUnavailableDates(car.id)
       ]);
@@ -55,7 +56,7 @@ export function BookingForm({ car }: BookingFormProps) {
         formData.returnDate,
         unavailableDates
       );
-      
+
       if (!available && conflictingBooking) {
         const start = new Date(conflictingBooking.start).toLocaleDateString();
         const end = new Date(conflictingBooking.end).toLocaleDateString();
@@ -150,7 +151,7 @@ export function BookingForm({ car }: BookingFormProps) {
             />
           </div>
         </div>
-        
+
         {/* Date Conflict Warning */}
         {dateConflict && (
           <motion.div
@@ -162,7 +163,7 @@ export function BookingForm({ car }: BookingFormProps) {
             <span>{dateConflict}</span>
           </motion.div>
         )}
-        
+
         {/* Show Booked Dates */}
         {unavailableDates.length > 0 && (
           <div className="pt-2 border-t border-border">
@@ -174,11 +175,10 @@ export function BookingForm({ car }: BookingFormProps) {
               {unavailableDates.map((range, idx) => (
                 <span
                   key={idx}
-                  className={`text-xs px-2 py-1 rounded-full ${
-                    range.status === 'confirmed' 
+                  className={`text-xs px-2 py-1 rounded-full ${range.status === 'confirmed'
                       ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
                       : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-                  }`}
+                    }`}
                 >
                   {new Date(range.start).toLocaleDateString()} - {new Date(range.end).toLocaleDateString()}
                   {range.status === 'pending' && ' (pending)'}
@@ -198,35 +198,19 @@ export function BookingForm({ car }: BookingFormProps) {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <Label htmlFor="pickupLocation">Pickup Location</Label>
-            <select
-              id="pickupLocation"
-              name="pickupLocation"
+            <LocationAutocomplete
               value={formData.pickupLocation}
-              onChange={handleChange}
-              className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
-            >
-              {locations.map((loc) => (
-                <option key={loc} value={loc}>
-                  {loc}
-                </option>
-              ))}
-            </select>
+              onChange={(val) => setFormData(prev => ({ ...prev, pickupLocation: val }))}
+              placeholder="Select pickup point"
+            />
           </div>
           <div>
             <Label htmlFor="returnLocation">Return Location</Label>
-            <select
-              id="returnLocation"
-              name="returnLocation"
+            <LocationAutocomplete
               value={formData.returnLocation}
-              onChange={handleChange}
-              className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
-            >
-              {locations.map((loc) => (
-                <option key={loc} value={loc}>
-                  {loc}
-                </option>
-              ))}
-            </select>
+              onChange={(val) => setFormData(prev => ({ ...prev, returnLocation: val }))}
+              placeholder="Select return point"
+            />
           </div>
         </div>
       </Card>
