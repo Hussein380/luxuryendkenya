@@ -122,7 +122,7 @@ export function AdminCarModal({ isOpen, onClose, car, onSuccess }: AdminCarModal
                 transmission: 'automatic',
                 fuelType: 'petrol',
                 seats: 5,
-                location: '',
+                location: locations[0] || 'Eastleigh 12nd St, Sec 2',
                 features: '',
                 available: true,
                 isFeatured: false,
@@ -427,12 +427,16 @@ export function AdminCarModal({ isOpen, onClose, car, onSuccess }: AdminCarModal
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium">Pickup Location (Nairobi)</label>
-                                    <LocationAutocomplete
+                                    <label className="text-sm font-medium">Location (Eastleigh Central)</label>
+                                    <select
+                                        className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                                         value={formData.location}
-                                        onChange={(val) => setFormData({ ...formData, location: val })}
-                                        placeholder="Select pickup location"
-                                    />
+                                        onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                                    >
+                                        {locations.map(loc => (
+                                            <option key={loc} value={loc}>{loc}</option>
+                                        ))}
+                                    </select>
                                 </div>
 
                                 <div className="space-y-2">

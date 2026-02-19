@@ -31,8 +31,8 @@ export function BookingForm({ car }: BookingFormProps) {
   const [formData, setFormData] = useState({
     pickupDate: '',
     returnDate: '',
-    pickupLocation: car.location,
-    returnLocation: car.location,
+    pickupLocation: 'Eastleigh 12nd St, Sec 2',
+    returnLocation: 'Eastleigh 12nd St, Sec 2',
     firstName: '',
     lastName: '',
     customerEmail: '',
@@ -236,25 +236,22 @@ export function BookingForm({ car }: BookingFormProps) {
       <Card className="p-4 space-y-4">
         <h3 className="font-display font-semibold flex items-center gap-2">
           <MapPin className="w-5 h-5 text-accent" />
-          Pickup & Return
+          Pickup & Return Location
         </h3>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="pickupLocation">Pickup Location</Label>
-            <LocationAutocomplete
-              value={formData.pickupLocation}
-              onChange={(val) => setFormData(prev => ({ ...prev, pickupLocation: val }))}
-              placeholder="Select pickup point"
-            />
-          </div>
-          <div>
-            <Label htmlFor="returnLocation">Return Location</Label>
-            <LocationAutocomplete
-              value={formData.returnLocation}
-              onChange={(val) => setFormData(prev => ({ ...prev, returnLocation: val }))}
-              placeholder="Select return point"
-            />
-          </div>
+        <div className="p-3 rounded-lg bg-secondary/50 border border-accent/20">
+          <p className="text-sm font-medium mb-1">Eastleigh 12nd St, Sec 2</p>
+          <a
+            href="https://share.google/BAz0wMApv14BzE2mR"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-accent hover:underline flex items-center gap-1"
+          >
+            <MapPin className="w-3 h-3" />
+            Open in Google Maps
+          </a>
+          <p className="text-[10px] text-muted-foreground mt-2 italic">
+            All vehicles are picked up and returned to this central location.
+          </p>
         </div>
       </Card>
 
@@ -426,7 +423,7 @@ export function BookingForm({ car }: BookingFormProps) {
           className="h-14 text-lg font-semibold border-2"
           disabled={!isFormValid || isSubmitting}
         >
-          Reserve & Negotiate
+          Reserve
         </Button>
       </div>
       <p className="text-[10px] text-center text-muted-foreground">
