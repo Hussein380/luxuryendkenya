@@ -16,22 +16,25 @@ const bookingSchema = new mongoose.Schema({
         ref: 'User',
         required: false // Optional for guest checkout
     },
-    customerName: {
+    firstName: {
         type: String,
-        required: [true, 'Please add a customer name']
+        required: [true, 'Please add a first name']
+    },
+    lastName: {
+        type: String,
+        required: [true, 'Please add a last name']
     },
     customerEmail: {
         type: String,
-        required: [true, 'Please add a customer email'],
         match: [
             /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
             'Please add a valid email'
-        ]
+        ],
+        required: false
     },
     customerPhone: {
         type: String,
-        required: false,
-        default: ''
+        required: [true, 'Please add a phone number']
     },
     pickupDate: {
         type: Date,
@@ -60,9 +63,29 @@ const bookingSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
+    idImageUrl: {
+        type: String,
+        required: [true, 'Please upload an ID image']
+    },
+    licenseImageUrl: {
+        type: String,
+        required: [true, 'Please upload a driving license image']
+    },
+    bookingType: {
+        type: String,
+        enum: ['book_now', 'reserve'],
+        required: true
+    },
+    paymentDetails: {
+        transactionId: String,
+        amount: Number,
+        paidAt: Date,
+        mpesaReceiptNumber: String,
+        resultDesc: String
+    },
     status: {
         type: String,
-        enum: ['pending', 'confirmed', 'active', 'completed', 'cancelled'],
+        enum: ['pending', 'reserved', 'confirmed', 'paid', 'cancelled', 'completed'],
         default: 'pending'
     },
     createdAt: {

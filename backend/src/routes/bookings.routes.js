@@ -5,23 +5,36 @@ const {
     getBookingById,
     updateBookingStatus,
     cancelBooking,
-    getBookingExtras
+    getBookingExtras,
+    handleMpesaCallback,
+    confirmPayment
 } = require('../controllers/bookings.controller');
 
 const { protect, restrictTo, optionalAuth } = require('../middleware/auth.middleware');
+const { uploadBookingDocuments } = require('../middleware/upload.middleware');
 const validate = require('../middleware/validate.middleware');
+const parseFormData = require('../middleware/parseFormData.middleware');
 const { bookingCreateSchema, bookingStatusSchema } = require('../utils/schemas/booking.schema');
 
 const router = express.Router();
 
-// Public routes
+// Public routes (Optional Auth)
+router.post('/',
+    optionalAuth,
+    uploadBookingDocuments,
+    parseFormData(['extras']),
+    validate(bookingCreateSchema),
+    createBooking
+);
+router.post('/mpesa-callback', handleMpesaCallback);
 router.get('/extras', getBookingExtras);
 
-// Combined routes for '/'
-// POST uses optionalAuth so logged-in users get their booking linked to their account
-router.route('/')
-    .get(protect, restrictTo('admin'), getBookings)
-    .post(optionalAuth, validate(bookingCreateSchema), createBooking);
+// Protected routes (Admin or User's own)
+router.get('/', protect, getBookings);
+router.get('/:id', protect, getBookingById);
+router.patch('/:id/status', protect, validate(bookingStatusSchema), updateBookingStatus);
+router.post('/:id/confirm-payment', protect, restrictTo('admin'), confirmPayment);
+router.delete('/:id', protect, cancelBooking);
 
 // Protected routes (User or Admin)
 router.get('/my', protect, getBookings);

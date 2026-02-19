@@ -27,7 +27,9 @@ import { Link } from 'react-router-dom';
 
 const statusIcons = {
   pending: Clock,
+  reserved: Clock,
   confirmed: CheckCircle,
+  paid: CheckCircle,
   active: CheckCircle,
   completed: CheckCircle,
   cancelled: XCircle,
@@ -70,7 +72,7 @@ export default function Dashboard() {
   };
 
   const upcomingBookings = bookings.filter(
-    (b) => b.status === 'pending' || b.status === 'confirmed' || b.status === 'active'
+    (b) => ['pending', 'reserved', 'confirmed', 'paid', 'active'].includes(b.status)
   );
   const pastBookings = bookings.filter((b) => b.status === 'completed' || b.status === 'cancelled');
 

@@ -9,3 +9,11 @@ exports.uploadCarImage = upload.fields([
     { name: 'image', maxCount: 1 },
     { name: 'images', maxCount: 10 }
 ]);
+
+/**
+ * Middleware to handle booking document uploads (ID & License)
+ */
+exports.uploadBookingDocuments = upload.fields([
+    { name: 'idImage', maxCount: 1 },
+    { name: 'licenseImage', maxCount: 1 }
+]);

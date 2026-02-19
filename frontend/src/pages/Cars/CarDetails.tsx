@@ -16,20 +16,36 @@ import type { Car } from '@/types';
 export default function CarDetails() {
   const { id } = useParams<{ id: string }>();
   const [car, setCar] = useState<Car | null>(null);
+  const [unavailableDates, setUnavailableDates] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const loadCar = async () => {
+    const loadCarData = async () => {
       if (!id) return;
       try {
-        const data = await getCarById(id);
-        setCar(data);
+        const [carData, dates] = await Promise.all([
+          getCarById(id),
+          import('@/services/carService').then(m => m.getUnavailableDates(id))
+        ]);
+        setCar(carData);
+        setUnavailableDates(dates);
       } finally {
         setIsLoading(false);
       }
     };
-    loadCar();
+    loadCarData();
   }, [id]);
+
+  const getCurrentReturnDate = () => {
+    if (!unavailableDates.length) return null;
+    const now = new Date();
+    const activeBooking = unavailableDates.find(d =>
+      new Date(d.start) <= now && new Date(d.end) >= now
+    );
+    return activeBooking ? new Date(activeBooking.end) : null;
+  };
+
+  const returnDate = getCurrentReturnDate();
 
   if (isLoading) {
     return (
@@ -244,10 +260,15 @@ export default function CarDetails() {
               {car.available ? (
                 <BookingForm car={car} />
               ) : (
-                <Card className="p-6 text-center">
-                  <h3 className="font-display font-semibold mb-2">Currently Unavailable</h3>
-                  <p className="text-muted-foreground text-sm mb-4">
-                    This car is not available for booking at the moment.
+                <Card className="p-6 text-center border-destructive/20 bg-destructive/5">
+                  <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-4">
+                    <Clock className="w-6 h-6 text-destructive" />
+                  </div>
+                  <h3 className="font-display font-semibold mb-2 text-destructive">Currently Unavailable</h3>
+                  <p className="text-muted-foreground text-sm mb-6">
+                    {returnDate
+                      ? `This car is currently on a trip and is expected back on ${returnDate.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}.`
+                      : 'This car is not available for booking at the moment.'}
                   </p>
                   <Button asChild variant="outline" className="w-full">
                     <Link to="/cars">Browse Other Cars</Link>

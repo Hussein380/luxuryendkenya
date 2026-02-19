@@ -22,24 +22,35 @@ export interface Car {
     description: string;
 }
 
+
 export interface Booking {
     id: string;
+    bookingId: string;
     carId: string;
     carName: string;
     carImage: string;
-    customerName: string;
-    customerEmail: string;
+    firstName: string;
+    lastName: string;
+    customerEmail?: string;
     customerPhone: string;
     pickupDate: string;
     returnDate: string;
     pickupLocation: string;
     returnLocation: string;
     totalDays: number;
-    pricePerDay: number;
     totalPrice: number;
-    status: 'pending' | 'confirmed' | 'active' | 'completed' | 'cancelled';
+    status: 'pending' | 'reserved' | 'confirmed' | 'paid' | 'cancelled' | 'completed';
     createdAt: string;
     extras: string[];
+    idImageUrl: string;
+    licenseImageUrl: string;
+    bookingType: 'book_now' | 'reserve';
+    paymentDetails?: {
+        transactionId?: string;
+        amount?: number;
+        paidAt?: string;
+        mpesaReceiptNumber?: string;
+    };
 }
 
 export interface Recommendation {

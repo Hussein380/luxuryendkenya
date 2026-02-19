@@ -24,9 +24,11 @@ import { getBookingById, cancelBooking } from '@/services/bookingService';
 import type { Booking } from '@/types';
 
 const statusConfig = {
-  pending: { icon: Clock, color: 'bg-yellow-500', label: 'Pending Confirmation' },
-  confirmed: { icon: CheckCircle, color: 'bg-green-500', label: 'Confirmed' },
-  active: { icon: Car, color: 'bg-blue-500', label: 'Active' },
+  pending: { icon: Clock, color: 'bg-yellow-500', label: 'Pending Payment' },
+  reserved: { icon: Clock, color: 'bg-blue-500', label: 'Reservation Under Review' },
+  confirmed: { icon: CheckCircle, color: 'bg-indigo-500', label: 'Admin Confirmed - Action Required' },
+  paid: { icon: CheckCircle, color: 'bg-green-500', label: 'Paid & Confirmed' },
+  active: { icon: Car, color: 'bg-blue-500', label: 'Active Trip' },
   completed: { icon: CheckCircle, color: 'bg-gray-500', label: 'Completed' },
   cancelled: { icon: XCircle, color: 'bg-red-500', label: 'Cancelled' },
 };
@@ -41,10 +43,10 @@ export default function BookingDetails() {
   useEffect(() => {
     const loadBooking = async () => {
       if (!id) return;
-      
+
       setIsLoading(true);
       setError(null);
-      
+
       try {
         const data = await getBookingById(id);
         if (data) {
@@ -64,7 +66,7 @@ export default function BookingDetails() {
 
   const handleCancel = async () => {
     if (!booking || !confirm('Are you sure you want to cancel this booking?')) return;
-    
+
     setIsCancelling(true);
     try {
       const success = await cancelBooking(booking.id);
@@ -235,14 +237,14 @@ export default function BookingDetails() {
                     <User className="w-5 h-5 text-muted-foreground" />
                     <div>
                       <p className="text-sm text-muted-foreground">Name</p>
-                      <p className="font-medium">{booking.customerName}</p>
+                      <p className="font-medium">{booking.firstName} {booking.lastName}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
                     <Mail className="w-5 h-5 text-muted-foreground" />
                     <div>
                       <p className="text-sm text-muted-foreground">Email</p>
-                      <p className="font-medium">{booking.customerEmail}</p>
+                      <p className="font-medium">{booking.customerEmail || 'N/A'}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -266,46 +268,46 @@ export default function BookingDetails() {
             >
               <Card className="p-6 sticky top-24">
                 <h2 className="font-display text-lg font-semibold mb-4">Price Summary</h2>
-                
+
                 <div className="space-y-3 mb-6">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">
-                      {formatPrice(booking.pricePerDay)} × {booking.totalDays} days
+                      Rental Charge ({booking.totalDays} days)
                     </span>
-                    <span>{formatPrice(booking.pricePerDay * booking.totalDays)}</span>
+                    <span>{formatPrice(booking.totalPrice)}</span>
                   </div>
-                  
+
                   {booking.extras && booking.extras.length > 0 && (
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Extras</span>
                       <span>Included</span>
                     </div>
                   )}
-                  
+
                   <div className="border-t border-border pt-3">
                     <div className="flex justify-between text-lg font-bold">
-                      <span>Total</span>
+                      <span>Total Price</span>
                       <span className="text-accent">{formatPrice(booking.totalPrice)}</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Status Message */}
-                <div className={`p-4 rounded-lg ${
-                  booking.status === 'confirmed' ? 'bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300' :
-                  booking.status === 'pending' ? 'bg-yellow-50 dark:bg-yellow-950 text-yellow-700 dark:text-yellow-300' :
-                  booking.status === 'cancelled' ? 'bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300' :
-                  'bg-muted'
-                }`}>
+                <div className={`p-4 rounded-lg ${booking.status === 'confirmed' || booking.status === 'paid' ? 'bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300' :
+                    booking.status === 'pending' || booking.status === 'reserved' ? 'bg-yellow-50 dark:bg-yellow-950 text-yellow-700 dark:text-yellow-300' :
+                      booking.status === 'cancelled' ? 'bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300' :
+                        'bg-muted'
+                  }`}>
                   <div className="flex items-center gap-2">
                     <StatusIcon className="w-5 h-5" />
                     <span className="font-medium">{status.label}</span>
                   </div>
                   <p className="text-sm mt-1 opacity-80">
-                    {booking.status === 'pending' && 'Your booking is awaiting confirmation from our team.'}
-                    {booking.status === 'confirmed' && 'Your booking has been confirmed. See you soon!'}
+                    {booking.status === 'pending' && 'Please complete the M-Pesa payment initiated on your phone.'}
+                    {booking.status === 'reserved' && 'Admin is reviewing your documents. You will be notified once confirmed.'}
+                    {booking.status === 'confirmed' && 'Your reservation is approved! Please proceed with payment.'}
+                    {booking.status === 'paid' && 'Payment received! Your booking is fully confirmed.'}
                     {booking.status === 'cancelled' && 'This booking has been cancelled.'}
-                    {booking.status === 'completed' && 'Thank you for choosing Sol Travel!'}
                   </p>
                 </div>
 

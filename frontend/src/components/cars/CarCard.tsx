@@ -40,11 +40,18 @@ export function CarCard({ car, index = 0 }: CarCardProps) {
             />
 
             {/* Status Badge */}
-            <div className="absolute top-3 left-3">
+            <div className="absolute top-3 left-3 flex flex-col gap-1">
               {car.available ? (
-                <Badge className="bg-success text-success-foreground border-0">Available</Badge>
+                <Badge className="bg-success text-success-foreground border-0 shadow-sm">Available</Badge>
               ) : (
-                <Badge variant="secondary">Unavailable</Badge>
+                <Badge variant="secondary" className="shadow-sm flex flex-col items-start py-1 h-auto">
+                  <span>Unavailable</span>
+                  {car.nextAvailableAt && (
+                    <span className="text-[10px] opacity-80 leading-tight">
+                      Available: {new Date(car.nextAvailableAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short', hour12: true })}
+                    </span>
+                  )}
+                </Badge>
               )}
             </div>
 

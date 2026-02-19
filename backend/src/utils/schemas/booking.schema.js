@@ -4,15 +4,21 @@ const bookingCreateSchema = Joi.object({
     carId: Joi.string().required().messages({
         'string.empty': 'Car ID is required'
     }),
-    customerName: Joi.string().required().messages({
-        'string.empty': 'Customer name is required'
+    firstName: Joi.string().required().messages({
+        'string.empty': 'First name is required'
     }),
-    customerEmail: Joi.string().email().required().messages({
+    lastName: Joi.string().required().messages({
+        'string.empty': 'Last name is required'
+    }),
+    customerEmail: Joi.string().email().allow(null, '').optional().messages({
         'string.email': 'Valid customer email is required'
     }),
-    customerPhone: Joi.string().allow('').optional().messages({
-        'string.base': 'Customer phone must be a string'
+    customerPhone: Joi.string().required().messages({
+        'string.empty': 'Customer phone is required'
     }),
+    idImageUrl: Joi.string().optional(),
+    licenseImageUrl: Joi.string().optional(),
+    bookingType: Joi.string().valid('book_now', 'reserve').required(),
     pickupDate: Joi.string().required().messages({
         'string.empty': 'Pickup date is required'
     }),
@@ -26,7 +32,7 @@ const bookingCreateSchema = Joi.object({
 });
 
 const bookingStatusSchema = Joi.object({
-    status: Joi.string().valid('pending', 'confirmed', 'active', 'completed', 'cancelled').required()
+    status: Joi.string().valid('pending', 'reserved', 'confirmed', 'paid', 'cancelled', 'completed').required()
 });
 
 module.exports = {

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { CalendarDays, MapPin, Plus, Check, AlertTriangle, Calendar } from 'lucide-react';
+import { CalendarDays, MapPin, Plus, Check, AlertTriangle, Calendar, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,14 +24,20 @@ export function BookingForm({ car }: BookingFormProps) {
   const [selectedExtras, setSelectedExtras] = useState<string[]>([]);
   const [unavailableDates, setUnavailableDates] = useState<UnavailableDateRange[]>([]);
   const [dateConflict, setDateConflict] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [idImage, setIdImage] = useState<File | null>(null);
+  const [licenseImage, setLicenseImage] = useState<File | null>(null);
   const [formData, setFormData] = useState({
     pickupDate: '',
     returnDate: '',
     pickupLocation: car.location,
     returnLocation: car.location,
-    customerName: '',
+    firstName: '',
+    lastName: '',
     customerEmail: '',
     customerPhone: '',
+    bookingType: 'book_now' as 'book_now' | 'reserve',
   });
 
   useEffect(() => {
@@ -83,40 +89,77 @@ export function BookingForm({ car }: BookingFormProps) {
     if (!formData.pickupDate || !formData.returnDate) return 0;
     const pickup = new Date(formData.pickupDate);
     const returnD = new Date(formData.returnDate);
-    const diff = Math.ceil((returnD.getTime() - pickup.getTime()) / (1000 * 60 * 60 * 24));
-    return diff > 0 ? diff : 0;
+    const diffMs = returnD.getTime() - pickup.getTime();
+
+    if (diffMs <= 0) return 0;
+
+    // Calculate total hours and convert to days (rounding up)
+    // e.g. 25 hours = 2 days
+    const diffHours = diffMs / (1000 * 60 * 60);
+    return Math.ceil(diffHours / 24);
   };
 
   const days = calculateDays();
   const selectedExtraItems = extras.filter((e) => selectedExtras.includes(e.id));
   const pricing = calculateBookingPrice(car.pricePerDay, days, selectedExtraItems);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent, type: 'book_now' | 'reserve') => {
     e.preventDefault();
-    // Navigate to confirmation with booking details
-    navigate('/booking/confirmation', {
-      state: {
-        car,
-        booking: {
-          ...formData,
-          extras: selectedExtras,
-          days,
-          pricing,
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      if (!idImage || !licenseImage) {
+        throw new Error('Please upload both ID and Driving License images');
+      }
+
+      const submissionData = new FormData();
+      submissionData.append('carId', car.id);
+      submissionData.append('firstName', formData.firstName);
+      submissionData.append('lastName', formData.lastName);
+      submissionData.append('customerEmail', formData.customerEmail || '');
+      submissionData.append('customerPhone', formData.customerPhone);
+      submissionData.append('pickupDate', formData.pickupDate);
+      submissionData.append('returnDate', formData.returnDate);
+      submissionData.append('pickupLocation', formData.pickupLocation);
+      submissionData.append('returnLocation', formData.returnLocation);
+      submissionData.append('bookingType', type);
+      submissionData.append('extras', JSON.stringify(selectedExtras));
+      submissionData.append('idImage', idImage);
+      submissionData.append('licenseImage', licenseImage);
+
+      const { createBooking } = await import('@/services/bookingService');
+      const result = await createBooking(submissionData);
+
+      // Navigate to confirmation with full result
+      navigate('/booking/confirmation', {
+        state: {
+          car,
+          booking: result.booking,
+          stkResult: result.stkResult,
+          type
         },
-      },
-    });
+      });
+    } catch (err: any) {
+      setError(err.message || 'Failed to submit booking');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const isFormValid =
     formData.pickupDate &&
     formData.returnDate &&
-    formData.customerName &&
-    formData.customerEmail &&
+    formData.firstName &&
+    formData.lastName &&
+    formData.customerPhone &&
+    idImage &&
+    licenseImage &&
     days > 0 &&
-    !dateConflict; // Also check for date conflicts
+    !dateConflict;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form className="space-y-6">
       {/* Dates */}
       <Card className="p-4 space-y-4">
         <h3 className="font-display font-semibold flex items-center gap-2">
@@ -125,27 +168,27 @@ export function BookingForm({ car }: BookingFormProps) {
         </h3>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <Label htmlFor="pickupDate">Pickup Date</Label>
+            <Label htmlFor="pickupDate">Pickup Date & Time</Label>
             <Input
-              type="date"
+              type="datetime-local"
               id="pickupDate"
               name="pickupDate"
               value={formData.pickupDate}
               onChange={handleChange}
-              min={new Date().toISOString().split('T')[0]}
+              min={new Date().toISOString().slice(0, 16)}
               required
               className={dateConflict ? 'border-destructive' : ''}
             />
           </div>
           <div>
-            <Label htmlFor="returnDate">Return Date</Label>
+            <Label htmlFor="returnDate">Return Date & Time</Label>
             <Input
-              type="date"
+              type="datetime-local"
               id="returnDate"
               name="returnDate"
               value={formData.returnDate}
               onChange={handleChange}
-              min={formData.pickupDate || new Date().toISOString().split('T')[0]}
+              min={formData.pickupDate || new Date().toISOString().slice(0, 16)}
               required
               className={dateConflict ? 'border-destructive' : ''}
             />
@@ -176,11 +219,11 @@ export function BookingForm({ car }: BookingFormProps) {
                 <span
                   key={idx}
                   className={`text-xs px-2 py-1 rounded-full ${range.status === 'confirmed'
-                      ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                      : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                    ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                    : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
                     }`}
                 >
-                  {new Date(range.start).toLocaleDateString()} - {new Date(range.end).toLocaleDateString()}
+                  {new Date(range.start).toLocaleString([], { dateStyle: 'short', timeStyle: 'short', hour12: true })} - {new Date(range.end).toLocaleString([], { dateStyle: 'short', timeStyle: 'short', hour12: true })}
                   {range.status === 'pending' && ' (pending)'}
                 </span>
               ))}
@@ -243,20 +286,33 @@ export function BookingForm({ car }: BookingFormProps) {
       {/* Customer Info */}
       <Card className="p-4 space-y-4">
         <h3 className="font-display font-semibold">Your Information</h3>
-        <div className="space-y-3">
-          <div>
-            <Label htmlFor="customerName">Full Name</Label>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="firstName">First Name</Label>
             <Input
-              id="customerName"
-              name="customerName"
-              value={formData.customerName}
+              id="firstName"
+              name="firstName"
+              value={formData.firstName}
               onChange={handleChange}
-              placeholder="John Doe"
+              placeholder="John"
               required
             />
           </div>
+          <div className="space-y-2">
+            <Label htmlFor="lastName">Last Name</Label>
+            <Input
+              id="lastName"
+              name="lastName"
+              value={formData.lastName}
+              onChange={handleChange}
+              placeholder="Doe"
+              required
+            />
+          </div>
+        </div>
+        <div className="space-y-3">
           <div>
-            <Label htmlFor="customerEmail">Email</Label>
+            <Label htmlFor="customerEmail">Email (Optional)</Label>
             <Input
               type="email"
               id="customerEmail"
@@ -264,19 +320,49 @@ export function BookingForm({ car }: BookingFormProps) {
               value={formData.customerEmail}
               onChange={handleChange}
               placeholder="your@email.com"
-              required
             />
           </div>
           <div>
-            <Label htmlFor="customerPhone">Phone</Label>
+            <Label htmlFor="customerPhone">Phone Number (M-Pesa)</Label>
             <Input
               type="tel"
               id="customerPhone"
               name="customerPhone"
               value={formData.customerPhone}
               onChange={handleChange}
-              placeholder="0725 996 394"
+              placeholder="2547XXXXXXXX"
+              required
             />
+            <p className="text-[10px] text-muted-foreground mt-1">Format: 2547xxxxxxxx</p>
+          </div>
+        </div>
+      </Card>
+
+      {/* Documents */}
+      <Card className="p-4 space-y-4">
+        <h3 className="font-display font-semibold">Required Documents</h3>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="idImage">National ID Image</Label>
+            <Input
+              type="file"
+              id="idImage"
+              accept="image/*"
+              onChange={(e) => setIdImage(e.target.files?.[0] || null)}
+              className="cursor-pointer"
+            />
+            {idImage && <p className="text-xs text-success">ID Selected: {idImage.name}</p>}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="licenseImage">Driving License Image</Label>
+            <Input
+              type="file"
+              id="licenseImage"
+              accept="image/*"
+              onChange={(e) => setLicenseImage(e.target.files?.[0] || null)}
+              className="cursor-pointer"
+            />
+            {licenseImage && <p className="text-xs text-success">License Selected: {licenseImage.name}</p>}
           </div>
         </div>
       </Card>
@@ -308,16 +394,44 @@ export function BookingForm({ car }: BookingFormProps) {
         </motion.div>
       )}
 
-      {/* Submit */}
-      <Button
-        type="submit"
-        size="lg"
-        className="w-full gradient-accent text-accent-foreground border-0 shadow-accent h-14 text-lg font-semibold"
-        disabled={!isFormValid}
-      >
-        <Check className="w-5 h-5 mr-2" />
-        Confirm Booking
-      </Button>
+      {/* Submit Buttons */}
+      {error && (
+        <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4" />
+          {error}
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <Button
+          type="button"
+          onClick={(e) => handleSubmit(e, 'book_now')}
+          size="lg"
+          className="gradient-accent text-accent-foreground border-0 shadow-accent h-14 text-lg font-semibold"
+          disabled={!isFormValid || isSubmitting}
+        >
+          {isSubmitting ? (
+            <Loader2 className="w-5 h-5 animate-spin mr-2" />
+          ) : (
+            <Check className="w-5 h-5 mr-2" />
+          )}
+          Pay & Book Now
+        </Button>
+
+        <Button
+          type="button"
+          onClick={(e) => handleSubmit(e, 'reserve')}
+          variant="outline"
+          size="lg"
+          className="h-14 text-lg font-semibold border-2"
+          disabled={!isFormValid || isSubmitting}
+        >
+          Reserve & Negotiate
+        </Button>
+      </div>
+      <p className="text-[10px] text-center text-muted-foreground">
+        Reserve flow requires admin confirmation before payment.
+      </p>
     </form>
   );
 }

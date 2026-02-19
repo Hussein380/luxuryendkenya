@@ -51,8 +51,28 @@ exports.getCars = async (req, res) => {
 
         mongooseQuery = mongooseQuery.skip(startIndex).limit(limit);
 
-        // Executing query
-        const cars = await mongooseQuery;
+        // Executed query
+        let cars = await mongooseQuery;
+
+        // AUTOMATION: For unavailable cars, find their next available date
+        const Booking = require('../models/Booking');
+        const now = new Date();
+
+        cars = await Promise.all(cars.map(async (car) => {
+            const carObj = car.toObject();
+            if (!car.available) {
+                const latestBooking = await Booking.findOne({
+                    car: car._id,
+                    status: { $in: ['confirmed', 'paid', 'active'] },
+                    returnDate: { $gt: now }
+                }).sort('returnDate');
+
+                if (latestBooking) {
+                    carObj.nextAvailableAt = latestBooking.returnDate;
+                }
+            }
+            return carObj;
+        }));
 
         sendSuccess(res, {
             cars,

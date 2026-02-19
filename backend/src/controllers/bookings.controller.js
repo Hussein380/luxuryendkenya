@@ -4,6 +4,8 @@ const Car = require('../models/Car');
 const bookingService = require('../services/booking.service');
 const { sendSuccess, sendError } = require('../utils/response');
 const { addEmailJob } = require('../services/queue.service');
+const mpesaService = require('../services/mpesa.service');
+const logger = require('../utils/logger');
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
 
@@ -14,23 +16,33 @@ exports.createBooking = async (req, res) => {
     try {
         const {
             carId,
-            customerName,
+            firstName,
+            lastName,
             customerEmail,
             customerPhone,
             pickupDate,
             returnDate,
             pickupLocation,
             returnLocation,
-            extras
+            extras,
+            bookingType
         } = req.body;
 
-        // 1. Check Availability
+        // 1. Check for documents
+        if (!req.files || !req.files.idImage || !req.files.licenseImage) {
+            return sendError(res, 'ID and License images are required', 400);
+        }
+
+        const idImageUrl = req.files.idImage[0].path;
+        const licenseImageUrl = req.files.licenseImage[0].path;
+
+        // 2. Check Availability
         const isAvailable = await bookingService.checkCarAvailability(carId, new Date(pickupDate), new Date(returnDate));
         if (!isAvailable) {
             return sendError(res, 'Car is not available for the selected dates', 400);
         }
 
-        // 2. Calculate Pricing
+        // 3. Calculate Pricing
         const { totalDays, totalPrice } = await bookingService.calculateTotalPrice(
             carId,
             new Date(pickupDate),
@@ -38,12 +50,16 @@ exports.createBooking = async (req, res) => {
             extras
         );
 
-        // 3. Create Booking
+        // 4. Create Booking
+        const bookingId = bookingService.generateBookingId();
+        const initialStatus = bookingType === 'reserve' ? 'reserved' : 'pending';
+
         const booking = await Booking.create({
-            bookingId: bookingService.generateBookingId(),
+            bookingId,
             car: carId,
             user: req.user ? req.user._id : null,
-            customerName,
+            firstName,
+            lastName,
             customerEmail,
             customerPhone,
             pickupDate,
@@ -52,50 +68,43 @@ exports.createBooking = async (req, res) => {
             returnLocation,
             extras,
             totalDays,
-            totalPrice
+            totalPrice,
+            idImageUrl,
+            licenseImageUrl,
+            bookingType,
+            status: initialStatus
         });
 
-        // 4. Send emails (await on Vercel to prevent premature function termination)
-        const emailPromises = [];
-        
-        // Send "received" email to client
-        emailPromises.push(
-            addEmailJob('booking-received', {
-                bookingId: booking.bookingId,
-                customerName,
-                customerEmail,
-                pickupDate,
-                returnDate,
-                pickupLocation,
-                totalPrice
-            })
-        );
-
-        // Send "new booking" email to admin
-        if (ADMIN_EMAIL) {
-            const car = await Car.findById(carId).select('name').lean();
-            emailPromises.push(
-                addEmailJob('admin-new-booking', {
+        // 5. Handle Flow Logic
+        if (bookingType === 'book_now') {
+            // Initiate M-Pesa STK Push
+            try {
+                const stkResult = await mpesaService.initiateStkPush(customerPhone, totalPrice, bookingId);
+                return sendSuccess(res, { booking, stkResult }, 'Booking initiated. Please complete payment on your phone.', 201);
+            } catch (err) {
+                logger.error(`Initial STK Push failed for ${bookingId}: ${err.message}`);
+                // Instead of success, return error so frontend doesn't jump to confirmation page
+                return sendError(res, `Payment initiation failed: ${err.message}. Please try again from your dashboard.`, 400);
+            }
+        } else {
+            // Reserve flow - Notify Admin
+            if (ADMIN_EMAIL) {
+                const car = await Car.findById(carId).select('name').lean();
+                await addEmailJob('admin-new-reservation', {
                     to: ADMIN_EMAIL,
-                    bookingId: booking.bookingId,
-                    customerName,
+                    bookingId,
+                    customerName: `${firstName} ${lastName}`,
                     customerEmail,
                     customerPhone,
                     carName: car?.name || 'N/A',
                     pickupDate,
-                    returnDate,
-                    pickupLocation,
                     totalPrice
-                })
-            );
+                });
+            }
+            return sendSuccess(res, booking, 'Reservation submitted successfully. Admin will contact you soon.', 201);
         }
-
-        // Wait for emails on Vercel (serverless needs to complete before termination)
-        // On local with BullMQ, this just waits for job to be added (fast)
-        await Promise.allSettled(emailPromises);
-
-        sendSuccess(res, booking, 'Booking created successfully', 201);
     } catch (error) {
+        logger.error(`Create Booking error: ${error.message}`);
         sendError(res, error.message, 400);
     }
 };
@@ -180,6 +189,127 @@ exports.updateBookingStatus = async (req, res) => {
     }
 };
 
+// @desc    M-Pesa Callback handler
+// @route   POST /api/bookings/mpesa-callback
+// @access  Public (M-Pesa)
+exports.handleMpesaCallback = async (req, res) => {
+    try {
+        const { Body } = req.body;
+        const { stkCallback } = Body;
+        const { ResultCode, ResultDesc, CallbackMetadata, CheckoutRequestID } = stkCallback;
+
+        const bookingId = CallbackMetadata?.Item?.find(i => i.Name === 'AccountReference')?.Value;
+        // In some cases M-Pesa might not return the reference, so we might need CheckoutRequestID
+        // But for this impl, we'll try to find by ID if reference is missing
+
+        const booking = await Booking.findOne({
+            $or: [
+                { bookingId: bookingId },
+                { 'paymentDetails.transactionId': CheckoutRequestID }
+            ]
+        });
+
+        if (!booking) {
+            logger.warn(`M-Pesa Callback: Booking not found for ${bookingId} / ${CheckoutRequestID}`);
+            return res.json({ ResultCode: 1, ResultDesc: 'Rejected' });
+        }
+
+        if (ResultCode === 0) {
+            // Success
+            const amount = CallbackMetadata.Item.find(i => i.Name === 'Amount')?.Value;
+            const mpesaReceiptNumber = CallbackMetadata.Item.find(i => i.Name === 'MpesaReceiptNumber')?.Value;
+            const transactionDate = CallbackMetadata.Item.find(i => i.Name === 'TransactionDate')?.Value;
+
+            booking.status = 'paid';
+            booking.paymentDetails = {
+                transactionId: CheckoutRequestID,
+                amount,
+                paidAt: new Date(),
+                mpesaReceiptNumber,
+                resultDesc: ResultDesc
+            };
+            await booking.save();
+
+            // AUTOMATION: Mark car as unavailable if it's currently in the rental period
+            const now = new Date();
+            if (now >= booking.pickupDate && now <= booking.returnDate) {
+                await Car.findByIdAndUpdate(booking.car, { available: false });
+            }
+
+            // Send receipt email
+            await addEmailJob('booking-receipt', {
+                bookingId: booking.bookingId,
+                customerName: `${booking.firstName} ${booking.lastName}`,
+                customerEmail: booking.customerEmail,
+                carName: (await Car.findById(booking.car).select('name').lean())?.name || 'N/A',
+                amount,
+                receiptNumber: mpesaReceiptNumber,
+                paidAt: booking.paymentDetails.paidAt
+            });
+
+            logger.info(`M-Pesa Payment Success: ${booking.bookingId} - ${mpesaReceiptNumber}`);
+        } else {
+            // Failed
+            booking.status = 'cancelled';
+            booking.paymentDetails = {
+                transactionId: CheckoutRequestID,
+                resultDesc: ResultDesc
+            };
+            await booking.save();
+            logger.info(`M-Pesa Payment Failed: ${booking.bookingId} - ${ResultDesc}`);
+        }
+
+        res.json({ ResultCode: 0, ResultDesc: 'Accepted' });
+    } catch (error) {
+        logger.error(`M-Pesa Callback Error: ${error.message}`);
+        res.status(500).json({ ResultCode: 1, ResultDesc: 'Internal Server Error' });
+    }
+};
+
+// @desc    Manually confirm payment (Admin)
+// @route   POST /api/bookings/:id/confirm-payment
+// @access  Private/Admin
+exports.confirmPayment = async (req, res) => {
+    try {
+        const booking = await Booking.findById(req.params.id);
+        if (!booking) {
+            return sendError(res, 'Booking not found', 404);
+        }
+
+        const { mpesaReceiptNumber, amount } = req.body;
+
+        booking.status = 'paid';
+        booking.paymentDetails = {
+            amount: amount || booking.totalPrice,
+            paidAt: new Date(),
+            mpesaReceiptNumber: mpesaReceiptNumber || 'MANUAL-CONFIRM',
+            resultDesc: 'Manually confirmed by admin'
+        };
+        await booking.save();
+
+        // AUTOMATION: Mark car as unavailable if it's currently in the rental period
+        const now = new Date();
+        if (now >= booking.pickupDate && now <= booking.returnDate) {
+            await Car.findByIdAndUpdate(booking.car, { available: false });
+        }
+
+        // Send receipt email
+        await addEmailJob('booking-receipt', {
+            bookingId: booking.bookingId,
+            customerName: `${booking.firstName} ${booking.lastName}`,
+            customerEmail: booking.customerEmail,
+            carName: (await Car.findById(booking.car).select('name').lean())?.name || 'N/A',
+            amount: booking.paymentDetails.amount,
+            receiptNumber: booking.paymentDetails.mpesaReceiptNumber,
+            paidAt: booking.paymentDetails.paidAt
+        });
+
+        sendSuccess(res, booking, 'Payment manually confirmed');
+    } catch (error) {
+        sendError(res, error.message, 500);
+    }
+};
+
 // @desc    Cancel booking
 // @route   DELETE /api/bookings/:id
 // @access  Private
@@ -224,7 +354,7 @@ exports.getBookingExtras = async (req, res) => {
 exports.getUnavailableDates = async (req, res) => {
     try {
         const { id: carId } = req.params;
-        
+
         // Get all active bookings for this car (pending, confirmed, active)
         const bookings = await Booking.find({
             car: carId,

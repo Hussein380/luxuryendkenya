@@ -36,9 +36,11 @@ import { getBookings, updateBookingStatus, cancelBooking } from '@/services/book
 import { AdminCarModal } from '@/components/admin/AdminCarModal';
 import type { Car as CarType, Booking } from '@/types';
 
-const statusConfig: Record<Booking['status'], { label: string; color: string; icon: typeof Check }> = {
-  pending: { label: 'Pending', color: 'bg-warning/10 text-warning', icon: Clock },
+const statusConfig: Record<string, { label: string; color: string; icon: typeof Check }> = {
+  pending: { label: 'Pending Payment', color: 'bg-warning/10 text-warning', icon: Clock },
+  reserved: { label: 'Reserved', color: 'bg-blue-500/10 text-blue-500', icon: Clock },
   confirmed: { label: 'Confirmed', color: 'bg-accent/10 text-accent', icon: Check },
+  paid: { label: 'Paid', color: 'bg-success/10 text-success', icon: Check },
   active: { label: 'Active', color: 'bg-success/10 text-success', icon: TrendingUp },
   completed: { label: 'Completed', color: 'bg-muted text-muted-foreground', icon: Check },
   cancelled: { label: 'Cancelled', color: 'bg-destructive/10 text-destructive', icon: X },
@@ -133,7 +135,7 @@ export default function Admin() {
     },
     {
       label: 'Active Bookings',
-      value: bookings.filter(b => b.status === 'active' || b.status === 'confirmed').length,
+      value: bookings.filter(b => b.status === 'confirmed' || b.status === 'paid').length,
       icon: CalendarDays,
       change: '+12% from last week',
     },
@@ -157,7 +159,7 @@ export default function Admin() {
   );
 
   const filteredBookings = bookings.filter(booking =>
-    booking.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    `${booking.firstName} ${booking.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
     booking.carName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     booking.id.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -282,8 +284,8 @@ export default function Admin() {
                               </div>
                             </td>
                             <td className="p-4 hidden md:table-cell">
-                              <p className="text-sm">{booking.customerName}</p>
-                              <p className="text-xs text-muted-foreground">{booking.customerEmail}</p>
+                              <p className="text-sm">{booking.firstName} {booking.lastName}</p>
+                              <p className="text-xs text-muted-foreground">{booking.customerEmail || booking.customerPhone}</p>
                             </td>
                             <td className="p-4 hidden lg:table-cell">
                               <p className="text-sm">
@@ -310,10 +312,16 @@ export default function Admin() {
                                     <Eye className="w-4 h-4 mr-2" />
                                     View Details
                                   </DropdownMenuItem>
-                                  {booking.status === 'pending' && (
+                                  {(booking.status === 'pending' || booking.status === 'reserved') && (
                                     <DropdownMenuItem onClick={() => handleConfirmBooking(booking.id)}>
                                       <Check className="w-4 h-4 mr-2" />
-                                      Confirm Booking
+                                      Confirm Status
+                                    </DropdownMenuItem>
+                                  )}
+                                  {booking.status !== 'paid' && (
+                                    <DropdownMenuItem>
+                                      <DollarSign className="w-4 h-4 mr-2" />
+                                      Mark as Paid
                                     </DropdownMenuItem>
                                   )}
                                   <DropdownMenuItem className="text-destructive" onClick={() => handleCancelBooking(booking.id)}>

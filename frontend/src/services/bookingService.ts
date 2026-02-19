@@ -30,10 +30,12 @@ export interface BookingsResponse {
  */
 const mapBooking = (b: any): Booking => ({
   id: b._id || b.id,
+  bookingId: b.bookingId,
   carId: b.car?._id || b.car,
   carName: b.car?.name || 'Car Name',
   carImage: b.car?.imageUrl || '',
-  customerName: b.customerName,
+  firstName: b.firstName,
+  lastName: b.lastName,
   customerEmail: b.customerEmail,
   customerPhone: b.customerPhone,
   pickupDate: b.pickupDate,
@@ -41,11 +43,14 @@ const mapBooking = (b: any): Booking => ({
   pickupLocation: b.pickupLocation,
   returnLocation: b.returnLocation,
   totalDays: b.totalDays,
-  pricePerDay: b.totalPrice / b.totalDays, // Derived if not in backend
   totalPrice: b.totalPrice,
   status: b.status,
   createdAt: b.createdAt,
   extras: b.extras || [],
+  idImageUrl: b.idImageUrl,
+  licenseImageUrl: b.licenseImageUrl,
+  bookingType: b.bookingType,
+  paymentDetails: b.paymentDetails,
 });
 
 /**
@@ -104,17 +109,17 @@ export async function getBookingById(id: string): Promise<Booking | null> {
 /**
  * Create a new booking
  */
-export async function createBooking(data: CreateBookingData): Promise<Booking | null> {
+export async function createBooking(data: FormData | CreateBookingData): Promise<any | null> {
   const response = await apiRequest<any>('/bookings', {
     method: 'POST',
-    body: JSON.stringify(data),
+    body: data instanceof FormData ? data : JSON.stringify(data),
   });
 
   if (response.success && response.data) {
-    return mapBooking(response.data);
+    // Return original data too for M-Pesa stkResult
+    return response.data;
   }
 
-  // Throw error with actual API error message
   throw new Error(response.error || 'Failed to create booking');
 }
 
