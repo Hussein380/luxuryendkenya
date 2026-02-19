@@ -20,12 +20,12 @@ export function Header() {
   const navLinks = isAdmin ? adminNavLinks : clientNavLinks;
 
   return (
-    <header className="sticky top-0 z-50 glass border-b border-border/50">
-      <nav className="container mx-auto px-4 h-16 flex items-center justify-between">
+    <header className="sticky top-0 z-50 bg-[#020817] border-b border-white/5 backdrop-blur-md">
+      <nav className="container mx-auto px-4 h-20 flex items-center justify-between">
         {/* Logo */}
-        <Link to={isAdmin ? "/admin" : "/"} className="flex items-center gap-2 font-display font-bold text-xl">
-          <img src="/logo.png" alt="Sol Travel" className="h-10 w-auto" />
-          <span className="hidden sm:block">Sol Travel</span>
+        <Link to={isAdmin ? "/admin" : "/"} className="flex items-center gap-3">
+          <img src="/logo.png" alt="Sol Travel Group" className="h-16 w-auto" />
+          <span className="hidden sm:block font-display font-bold text-xl text-white">Sol Travel Group</span>
         </Link>
 
         {/* Desktop Navigation */}
@@ -38,7 +38,7 @@ export function Header() {
                 'text-sm font-medium transition-colors hover:text-accent',
                 location.pathname === link.href
                   ? 'text-accent'
-                  : 'text-muted-foreground'
+                  : 'text-slate-300'
               )}
             >
               {link.label}
@@ -51,14 +51,14 @@ export function Header() {
           {isAuthenticated ? (
             <div className="flex items-center gap-3">
               <span className="text-sm font-medium text-accent">Hi, {user?.name.split(' ')[0]}</span>
-              <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-destructive" onClick={logout}>
+              <Button variant="ghost" size="sm" className="gap-2 text-slate-400 hover:text-destructive hover:bg-destructive/10" onClick={logout}>
                 <LogOut className="w-4 h-4" />
                 Logout
               </Button>
             </div>
           ) : (
             <>
-              <Button variant="ghost" size="sm" className="gap-2" asChild>
+              <Button variant="ghost" size="sm" className="gap-2 text-slate-300 hover:text-white hover:bg-white/5" asChild>
                 <Link to="/login">
                   <User className="w-4 h-4" />
                   Sign In
@@ -74,7 +74,7 @@ export function Header() {
         {/* Mobile Menu Button */}
         <button
           onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className="md:hidden p-2 rounded-lg hover:bg-secondary transition-colors"
+          className="md:hidden p-2 rounded-lg text-slate-300 hover:bg-white/5 transition-colors"
           aria-label="Toggle menu"
         >
           {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -88,7 +88,7 @@ export function Header() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden glass border-t border-border/50"
+            className="md:hidden bg-[#020817] border-t border-white/5 shadow-2xl"
           >
             <div className="container mx-auto px-4 py-4 space-y-3">
               {navLinks.map((link) => (
@@ -100,7 +100,7 @@ export function Header() {
                     'block py-2 px-3 rounded-lg text-sm font-medium transition-colors',
                     location.pathname === link.href
                       ? 'bg-accent/10 text-accent'
-                      : 'text-muted-foreground hover:bg-secondary'
+                      : 'text-slate-300 hover:bg-white/5 hover:text-white'
                   )}
                 >
                   {link.label}
@@ -109,15 +109,15 @@ export function Header() {
               <div className="pt-3 border-t border-border space-y-2">
                 {isAuthenticated ? (
                   <>
-                    <p className="text-xs text-muted-foreground px-3">Signed in as {user?.email}</p>
-                    <Button variant="outline" className="w-full text-destructive" size="sm" onClick={logout}>
+                    <p className="text-xs text-slate-500 px-3">Signed in as {user?.email}</p>
+                    <Button variant="outline" className="w-full text-destructive border-destructive/20 bg-destructive/5 hover:bg-destructive/10" size="sm" onClick={logout}>
                       <LogOut className="w-4 h-4 mr-2" />
                       Logout
                     </Button>
                   </>
                 ) : (
                   <>
-                    <Button variant="outline" className="w-full" size="sm" asChild onClick={() => setIsMenuOpen(false)}>
+                    <Button variant="outline" className="w-full border-white/10 text-slate-300 hover:bg-white/5" size="sm" asChild onClick={() => setIsMenuOpen(false)}>
                       <Link to="/login">Sign In</Link>
                     </Button>
                     <Button className="w-full gradient-accent text-accent-foreground border-0" size="sm" asChild>

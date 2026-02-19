@@ -20,6 +20,7 @@ export interface Car {
     location: string;
     mileage: string;
     description: string;
+    nextAvailableAt?: string;
 }
 
 

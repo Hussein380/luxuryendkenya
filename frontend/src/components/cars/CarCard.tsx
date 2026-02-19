@@ -48,7 +48,10 @@ export function CarCard({ car, index = 0 }: CarCardProps) {
                   <span>Unavailable</span>
                   {car.nextAvailableAt && (
                     <span className="text-[10px] opacity-80 leading-tight">
-                      Available: {new Date(car.nextAvailableAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short', hour12: true })}
+                      {new Date(car.nextAvailableAt) < new Date()
+                        ? 'Awaiting Return (Late)'
+                        : `Available: ${new Date(car.nextAvailableAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short', hour12: true })}`
+                      }
                     </span>
                   )}
                 </Badge>

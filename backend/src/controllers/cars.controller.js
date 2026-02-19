@@ -61,14 +61,13 @@ exports.getCars = async (req, res) => {
         cars = await Promise.all(cars.map(async (car) => {
             const carObj = car.toObject();
             if (!car.available) {
-                const latestBooking = await Booking.findOne({
+                const occupationBooking = await Booking.findOne({
                     car: car._id,
-                    status: { $in: ['confirmed', 'paid', 'active'] },
-                    returnDate: { $gt: now }
-                }).sort('returnDate');
+                    status: { $in: ['confirmed', 'paid', 'active', 'overdue'] }
+                }).sort('-status returnDate');
 
-                if (latestBooking) {
-                    carObj.nextAvailableAt = latestBooking.returnDate;
+                if (occupationBooking) {
+                    carObj.nextAvailableAt = occupationBooking.returnDate;
                 }
             }
             return carObj;
@@ -94,7 +93,21 @@ exports.getCarById = async (req, res) => {
         if (!car) {
             return sendError(res, 'Car not found', 404);
         }
-        sendSuccess(res, car);
+
+        const carObj = car.toObject();
+        if (!car.available) {
+            const Booking = require('../models/Booking');
+            const occupationBooking = await Booking.findOne({
+                car: car._id,
+                status: { $in: ['confirmed', 'paid', 'active', 'overdue'] }
+            }).sort('-status returnDate');
+
+            if (occupationBooking) {
+                carObj.nextAvailableAt = occupationBooking.returnDate;
+            }
+        }
+
+        sendSuccess(res, carObj);
     } catch (error) {
         sendError(res, error.message, 500);
     }
@@ -136,6 +149,23 @@ exports.getFeaturedCars = async (req, res) => {
 
             cars = [...cars, ...topRated];
         }
+
+        // AUTOMATION: For unavailable cars, find their next available date
+        const Booking = require('../models/Booking');
+        cars = await Promise.all(cars.map(async (car) => {
+            const carObj = car.toObject();
+            if (!car.available) {
+                const occupationBooking = await Booking.findOne({
+                    car: car._id,
+                    status: { $in: ['confirmed', 'paid', 'active', 'overdue'] }
+                }).sort('-status returnDate');
+
+                if (occupationBooking) {
+                    carObj.nextAvailableAt = occupationBooking.returnDate;
+                }
+            }
+            return carObj;
+        }));
 
         sendSuccess(res, cars);
     } catch (error) {

@@ -29,6 +29,21 @@ exports.initCronJobs = () => {
                 console.log(`Sent return reminder for ${booking.bookingId}`);
             }
 
+            // 2. Mark active bookings as overdue if past return date
+            const overdueBookings = await Booking.find({
+                status: 'active',
+                returnDate: { $lt: now }
+            });
+
+            for (const booking of overdueBookings) {
+                booking.status = 'overdue';
+                await booking.save();
+                console.log(`Marked booking ${booking.bookingId} as OVERDUE`);
+
+                // Optional: Trigger an alert email to admin
+                await sendOverdueAlert(booking);
+            }
+
         } catch (error) {
             console.error('Cron Job Error:', error);
         }

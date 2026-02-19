@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { CalendarDays, MapPin, Plus, Check, AlertTriangle, Calendar, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -38,6 +38,7 @@ export function BookingForm({ car }: BookingFormProps) {
     customerEmail: '',
     customerPhone: '',
     bookingType: 'book_now' as 'book_now' | 'reserve',
+    agreedToTerms: false,
   });
 
   useEffect(() => {
@@ -153,6 +154,7 @@ export function BookingForm({ car }: BookingFormProps) {
     formData.firstName &&
     formData.lastName &&
     formData.customerPhone &&
+    formData.agreedToTerms &&
     idImage &&
     licenseImage &&
     days > 0 &&
@@ -398,6 +400,28 @@ export function BookingForm({ car }: BookingFormProps) {
           {error}
         </div>
       )}
+
+      {/* Terms & Conditions Acceptance */}
+      <Card className="p-4 bg-accent/5 border-dashed border-accent/20">
+        <div className="flex items-start gap-3">
+          <Checkbox
+            id="terms"
+            checked={formData.agreedToTerms}
+            onCheckedChange={(checked) =>
+              setFormData(prev => ({ ...prev, agreedToTerms: !!checked }))
+            }
+            className="mt-1"
+          />
+          <div className="space-y-1">
+            <Label htmlFor="terms" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+              I agree to the <Link to="/terms" className="text-accent underline hover:text-accent/80" target="_blank">Terms & Conditions</Link>
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              By checking this, you acknowledge our age requirements, geographical limits (50km from Nairobi), and damage responsibility policies.
+            </p>
+          </div>
+        </div>
+      </Card>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Button

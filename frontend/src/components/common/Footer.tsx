@@ -10,7 +10,7 @@ export function Footer() {
           <div className="space-y-4">
             <Link to="/" className="flex items-center gap-2 font-display font-bold text-xl">
               <img src="/logo.png" alt="Sol Travel Group" className="h-10 w-auto" />
-              <span>Sol Travel</span>
+              <span>Sol Travel Group</span>
             </Link>
             <p className="text-sm text-primary-foreground/70">
               Premium car rental experience with the best vehicles and exceptional service.
@@ -47,7 +47,7 @@ export function Footer() {
             <h4 className="font-display font-semibold mb-4">Support</h4>
             <ul className="space-y-2 text-sm">
               <li><a href="#" className="text-primary-foreground/70 hover:text-primary-foreground transition-colors">Help Center</a></li>
-              <li><a href="#" className="text-primary-foreground/70 hover:text-primary-foreground transition-colors">Terms of Service</a></li>
+              <li><Link to="/terms" className="text-primary-foreground/70 hover:text-primary-foreground transition-colors">Terms of Service</Link></li>
               <li><a href="#" className="text-primary-foreground/70 hover:text-primary-foreground transition-colors">Privacy Policy</a></li>
               <li><a href="#" className="text-primary-foreground/70 hover:text-primary-foreground transition-colors">Contact Us</a></li>
             </ul>
