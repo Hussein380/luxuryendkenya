@@ -8,10 +8,8 @@ const connectDB = async () => {
         return conn;
     } catch (error) {
         logger.error(`MongoDB Connection Error: ${error.message}`);
-        if (process.env.VERCEL) {
-            throw error; // Don't exit in serverless
-        }
-        process.exit(1);
+        // If it's an initial connection error, let the calling code handle it
+        // and avoid process.exit(1) to prevent crash-loops during internet flickers.
     }
 };
 

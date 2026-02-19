@@ -256,25 +256,25 @@ export default function CarDetails() {
                 </p>
               </Card>
 
-              {/* Booking Form */}
-              {car.available ? (
+              {/* Booking Form - Always show to allow future bookings */}
+              <div className="space-y-4">
+                {!car.available && (
+                  <Card className="p-4 border-destructive/20 bg-destructive/5">
+                    <div className="flex gap-3">
+                      <Clock className="w-5 h-5 text-destructive shrink-0" />
+                      <div className="text-sm">
+                        <p className="font-semibold text-destructive">Currently Out on Trip</p>
+                        <p className="text-muted-foreground">
+                          {returnDate
+                            ? `Expected back: ${returnDate.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}.`
+                            : 'This car is currently unavailable for immediate pickup.'}
+                        </p>
+                      </div>
+                    </div>
+                  </Card>
+                )}
                 <BookingForm car={car} />
-              ) : (
-                <Card className="p-6 text-center border-destructive/20 bg-destructive/5">
-                  <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-4">
-                    <Clock className="w-6 h-6 text-destructive" />
-                  </div>
-                  <h3 className="font-display font-semibold mb-2 text-destructive">Currently Unavailable</h3>
-                  <p className="text-muted-foreground text-sm mb-6">
-                    {returnDate
-                      ? `This car is currently on a trip and is expected back on ${returnDate.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}.`
-                      : 'This car is not available for booking at the moment.'}
-                  </p>
-                  <Button asChild variant="outline" className="w-full">
-                    <Link to="/cars">Browse Other Cars</Link>
-                  </Button>
-                </Card>
-              )}
+              </div>
             </div>
           </motion.div>
         </div>

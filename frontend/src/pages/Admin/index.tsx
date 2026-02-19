@@ -14,7 +14,10 @@ import {
   Trash2,
   Check,
   X,
-  Clock
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  UserX
 } from 'lucide-react';
 import { formatPrice } from '@/lib/currency';
 import { Button } from '@/components/ui/button';
@@ -32,8 +35,10 @@ import { Layout } from '@/components/common/Layout';
 import { LazyImage } from '@/components/common/LazyImage';
 import { Skeleton } from '@/components/common/Skeleton';
 import { getCars, deleteCar } from '@/services/carService';
-import { getBookings, updateBookingStatus, cancelBooking } from '@/services/bookingService';
+import { getBookings, updateBookingStatus, cancelBooking, startTrip, markAsOverdue, markNoShow } from '@/services/bookingService';
 import { AdminCarModal } from '@/components/admin/AdminCarModal';
+import { CheckInModal } from '@/components/admin/CheckInModal';
+import { AdminBookingDetailsModal } from '@/components/admin/AdminBookingDetailsModal';
 import type { Car as CarType, Booking } from '@/types';
 
 const statusConfig: Record<string, { label: string; color: string; icon: typeof Check }> = {
@@ -41,7 +46,8 @@ const statusConfig: Record<string, { label: string; color: string; icon: typeof 
   reserved: { label: 'Reserved', color: 'bg-blue-500/10 text-blue-500', icon: Clock },
   confirmed: { label: 'Confirmed', color: 'bg-accent/10 text-accent', icon: Check },
   paid: { label: 'Paid', color: 'bg-success/10 text-success', icon: Check },
-  active: { label: 'Active', color: 'bg-success/10 text-success', icon: TrendingUp },
+  active: { label: 'Active', color: 'bg-indigo-500/10 text-indigo-500', icon: TrendingUp },
+  overdue: { label: 'Overdue', color: 'bg-destructive/10 text-destructive', icon: Clock },
   completed: { label: 'Completed', color: 'bg-muted text-muted-foreground', icon: Check },
   cancelled: { label: 'Cancelled', color: 'bg-destructive/10 text-destructive', icon: X },
 };
@@ -58,6 +64,9 @@ export default function Admin() {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCar, setSelectedCar] = useState<CarType | null>(null);
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [isCheckInModalOpen, setIsCheckInModalOpen] = useState(false);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
   const loadData = async () => {
     setIsLoading(true);
@@ -126,6 +135,41 @@ export default function Admin() {
     }
   };
 
+  const handleStartTrip = async (id: string) => {
+    const updated = await startTrip(id);
+    if (updated) {
+      loadData();
+    }
+  };
+
+  const handleCheckIn = (booking: Booking) => {
+    setSelectedBooking(booking);
+    setIsCheckInModalOpen(true);
+  };
+
+  const handleViewDetails = (booking: Booking) => {
+    setSelectedBooking(booking);
+    setIsDetailsModalOpen(true);
+  };
+
+  const handleMarkOverdue = async (id: string) => {
+    if (window.confirm('Mark this booking as overdue and send alert email?')) {
+      const updated = await markAsOverdue(id);
+      if (updated) {
+        loadData();
+      }
+    }
+  };
+
+  const handleNoShow = async (id: string) => {
+    if (window.confirm('Mark this as No-Show and release the car immediately?')) {
+      const updated = await markNoShow(id);
+      if (updated) {
+        loadData();
+      }
+    }
+  };
+
   const stats = [
     {
       label: 'Total Cars',
@@ -141,7 +185,7 @@ export default function Admin() {
     },
     {
       label: 'Revenue',
-      value: formatPrice(bookings.reduce((sum, b) => sum + b.totalPrice, 0)),
+      value: formatPrice(bookings.filter(b => b.status === 'paid' || b.status === 'completed').reduce((sum, b) => sum + b.totalPrice, 0)),
       icon: DollarSign,
       change: '+8% from last month',
     },
@@ -308,7 +352,7 @@ export default function Admin() {
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                  <DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleViewDetails(booking)}>
                                     <Eye className="w-4 h-4 mr-2" />
                                     View Details
                                   </DropdownMenuItem>
@@ -318,10 +362,28 @@ export default function Admin() {
                                       Confirm Status
                                     </DropdownMenuItem>
                                   )}
-                                  {booking.status !== 'paid' && (
-                                    <DropdownMenuItem>
-                                      <DollarSign className="w-4 h-4 mr-2" />
-                                      Mark as Paid
+                                  {booking.status === 'paid' && (
+                                    <DropdownMenuItem onClick={() => handleStartTrip(booking.id)}>
+                                      <TrendingUp className="w-4 h-4 mr-2" />
+                                      Checkout (Start Trip)
+                                    </DropdownMenuItem>
+                                  )}
+                                  {(booking.status === 'active' || booking.status === 'overdue') && (
+                                    <DropdownMenuItem onClick={() => handleCheckIn(booking)}>
+                                      <CheckCircle2 className="w-4 h-4 mr-2" />
+                                      Check-In (End Trip)
+                                    </DropdownMenuItem>
+                                  )}
+                                  {booking.status === 'active' && (
+                                    <DropdownMenuItem onClick={() => handleMarkOverdue(booking.id)} className="text-destructive">
+                                      <AlertCircle className="w-4 h-4 mr-2" />
+                                      Mark as Overdue
+                                    </DropdownMenuItem>
+                                  )}
+                                  {['pending', 'confirmed', 'paid', 'reserved'].includes(booking.status) && (
+                                    <DropdownMenuItem onClick={() => handleNoShow(booking.id)} className="text-warning">
+                                      <UserX className="w-4 h-4 mr-2" />
+                                      Mark as No-Show
                                     </DropdownMenuItem>
                                   )}
                                   <DropdownMenuItem className="text-destructive" onClick={() => handleCancelBooking(booking.id)}>
@@ -427,10 +489,27 @@ export default function Admin() {
         </Tabs>
 
         <AdminCarModal
+          car={selectedCar}
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
-          car={selectedCar}
           onSuccess={loadData}
+        />
+
+        <CheckInModal
+          booking={selectedBooking}
+          isOpen={isCheckInModalOpen}
+          onClose={() => setIsCheckInModalOpen(false)}
+          onSuccess={loadData}
+        />
+
+        <AdminBookingDetailsModal
+          booking={selectedBooking}
+          isOpen={isDetailsModalOpen}
+          onClose={() => setIsDetailsModalOpen(false)}
+          onConfirm={handleConfirmBooking}
+          onStartTrip={handleStartTrip}
+          onCancel={handleCancelBooking}
+          onMarkPaid={handleConfirmBooking}
         />
       </div>
     </Layout>

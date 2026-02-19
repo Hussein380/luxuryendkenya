@@ -58,6 +58,30 @@ const emailTemplates = {
             <p>Log in to the admin dashboard to review documents and confirm.</p>
         `,
     }),
+    'return-reminder': (data) => ({
+        subject: `Friendly Reminder: Car Return in 30 Minutes (#${data.bookingId})`,
+        html: `
+            <h1>Return Reminder</h1>
+            <p>Hi ${data.customerName},</p>
+            <p>We hope you've enjoyed your ride!</p>
+            <p>This is a friendly reminder that your rental period for the <strong>${data.carName}</strong> ends in 30 minutes.</p>
+            <p>Please ensure the vehicle is returned to <strong>Eastleigh 12nd St, Sec 2</strong> by ${new Date(data.returnDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })} to avoid late fees.</p>
+            <p>Safe travels!</p>
+        `,
+    }),
+    'overdue-alert': (data) => ({
+        subject: `URGENT: Car Return is Overdue (#${data.bookingId})`,
+        html: `
+            <h1 style="color: #e11d48;">Booking Overdue</h1>
+            <p>Hi ${data.customerName},</p>
+            <p>Your return time for the <strong>${data.carName}</strong> passed at ${new Date(data.returnDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}.</p>
+            <p>Please return the vehicle to <strong>Eastleigh 12nd St, Sec 2</strong> immediately.</p>
+            <p style="background: #fff1f2; padding: 15px; border-radius: 8px; border: 1px solid #fda4af;">
+                <strong>Late Fee Notice:</strong> Your booking is now in a penalty period (>1 hour late). Additional charges will apply upon check-in.
+            </p>
+            <p>If you're having trouble returning the car, please contact us at ${CONTACT_PHONE}.</p>
+        `,
+    }),
 };
 
 const sendEmailDirectly = async (type, data) => {
@@ -91,7 +115,23 @@ const sendEmailDirectly = async (type, data) => {
     }
 };
 
+const sendReturnReminder = async (booking) => {
+    return sendEmailDirectly('return-reminder', {
+        ...booking.toObject(),
+        customerName: `${booking.firstName} ${booking.lastName}`
+    });
+};
+
+const sendOverdueAlert = async (booking) => {
+    return sendEmailDirectly('overdue-alert', {
+        ...booking.toObject(),
+        customerName: `${booking.firstName} ${booking.lastName}`
+    });
+};
+
 module.exports = {
     sendEmailDirectly,
+    sendReturnReminder,
+    sendOverdueAlert,
     emailTemplates,
 };

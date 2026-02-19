@@ -10,6 +10,7 @@ connectDB();
 
 // Start Background Workers
 require('./workers/email.worker');
+require('./services/cron.service').initCronJobs();
 
 const server = app.listen(PORT, () => {
     logger.info(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);

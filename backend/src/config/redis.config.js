@@ -19,11 +19,12 @@ if (useRedis) {
         socket: {
             tls: url.startsWith('rediss://'),
             reconnectStrategy: (retries) => {
-                if (retries > 10) {
-                    console.log('Redis reached max retries. Caching disabled.');
+                if (retries > 100) {
+                    console.log('Redis reached absolute max retries. Caching disabled.');
                     return false;
                 }
-                return Math.min(retries * 50, 2000);
+                // Try every 2 seconds after initial flurries
+                return Math.min(retries * 100, 5000);
             }
         }
     });
@@ -53,7 +54,7 @@ if (useRedis) {
 } else {
     // Vercel without Upstash REDIS_URL - no caching
     client = { isOpen: false };
-    clearCarCache = async () => {};
+    clearCarCache = async () => { };
 }
 
 module.exports = {

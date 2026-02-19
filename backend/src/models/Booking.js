@@ -83,10 +83,33 @@ const bookingSchema = new mongoose.Schema({
         mpesaReceiptNumber: String,
         resultDesc: String
     },
+    actualReturnDate: {
+        type: Date
+    },
+    penaltyFee: {
+        amount: {
+            type: Number,
+            default: 0
+        },
+        status: {
+            type: String,
+            enum: ['none', 'pending', 'waived', 'paid'],
+            default: 'none'
+        },
+        reason: {
+            type: String
+        },
+        paidAt: Date,
+        transactionId: String
+    },
     status: {
         type: String,
-        enum: ['pending', 'reserved', 'confirmed', 'paid', 'cancelled', 'completed'],
+        enum: ['pending', 'reserved', 'confirmed', 'paid', 'active', 'overdue', 'cancelled', 'completed'],
         default: 'pending'
+    },
+    reminderSent: {
+        type: Boolean,
+        default: false
     },
     createdAt: {
         type: Date,

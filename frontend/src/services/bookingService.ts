@@ -50,6 +50,9 @@ const mapBooking = (b: any): Booking => ({
   idImageUrl: b.idImageUrl,
   licenseImageUrl: b.licenseImageUrl,
   bookingType: b.bookingType,
+  reminderSent: b.reminderSent,
+  actualReturnDate: b.actualReturnDate,
+  penaltyFee: b.penaltyFee,
   paymentDetails: b.paymentDetails,
 });
 
@@ -177,4 +180,97 @@ export function calculateBookingPrice(
     extrasTotal,
     total: subtotal + extrasTotal,
   };
+}
+
+/**
+ * Start trip (Admin only)
+ */
+export async function startTrip(id: string): Promise<Booking | null> {
+  const response = await apiRequest<any>(`/bookings/${id}/start-trip`, {
+    method: 'POST',
+  });
+  if (response.success && response.data) {
+    return mapBooking(response.data);
+  }
+  return null;
+}
+
+/**
+ * Check in car (Admin only)
+ */
+export async function checkIn(id: string): Promise<Booking | null> {
+  const response = await apiRequest<any>(`/bookings/${id}/check-in`, {
+    method: 'POST',
+  });
+  if (response.success && response.data) {
+    return mapBooking(response.data);
+  }
+  return null;
+}
+
+/**
+ * Update penalty fee (Admin only)
+ */
+export async function updatePenalty(
+  id: string,
+  data: { amount?: number; status?: string; reason?: string }
+): Promise<Booking | null> {
+  const response = await apiRequest<any>(`/bookings/${id}/penalty`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+  if (response.success && response.data) {
+    return mapBooking(response.data);
+  }
+  return null;
+}
+
+/**
+ * Initiate penalty payment (Admin only)
+ */
+export async function payPenalty(id: string): Promise<any> {
+  const response = await apiRequest<any>(`/bookings/${id}/pay-penalty`, {
+    method: 'POST',
+  });
+  return response.data;
+}
+
+/**
+ * Manually mark booking as overdue (Admin only)
+ */
+export async function markAsOverdue(id: string): Promise<Booking | null> {
+  const response = await apiRequest<any>(`/bookings/${id}/mark-overdue`, {
+    method: 'POST',
+  });
+  if (response.success && response.data) {
+    return mapBooking(response.data);
+  }
+  return null;
+}
+
+/**
+ * Mark booking as No-Show (Admin only)
+ */
+export async function markNoShow(id: string): Promise<Booking | null> {
+  const response = await apiRequest<any>(`/bookings/${id}/no-show`, {
+    method: 'POST',
+  });
+  if (response.success && response.data) {
+    return mapBooking(response.data);
+  }
+  return null;
+}
+
+/**
+ * Extend a trip
+ */
+export async function extendTrip(id: string, newReturnDate: string): Promise<Booking | null> {
+  const response = await apiRequest<any>(`/bookings/${id}/extend`, {
+    method: 'POST',
+    body: JSON.stringify({ newReturnDate }),
+  });
+  if (response.success && response.data) {
+    return mapBooking(response.data);
+  }
+  return null;
 }

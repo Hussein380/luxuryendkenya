@@ -39,12 +39,21 @@ export interface Booking {
     returnLocation: string;
     totalDays: number;
     totalPrice: number;
-    status: 'pending' | 'reserved' | 'confirmed' | 'paid' | 'cancelled' | 'completed';
+    status: 'pending' | 'reserved' | 'confirmed' | 'paid' | 'active' | 'overdue' | 'cancelled' | 'completed';
     createdAt: string;
     extras: string[];
     idImageUrl: string;
     licenseImageUrl: string;
     bookingType: 'book_now' | 'reserve';
+    reminderSent?: boolean;
+    actualReturnDate?: string;
+    penaltyFee?: {
+        amount: number;
+        status: 'none' | 'pending' | 'waived' | 'paid';
+        reason?: string;
+        paidAt?: string;
+        transactionId?: string;
+    };
     paymentDetails?: {
         transactionId?: string;
         amount?: number;

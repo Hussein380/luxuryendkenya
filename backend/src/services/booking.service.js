@@ -14,7 +14,7 @@ exports.checkCarAvailability = async (carId, pickupDate, returnDate) => {
     // Find any bookings for this car that overlap with the requested dates
     const overlappingBooking = await Booking.findOne({
         car: carId,
-        status: { $in: ['confirmed', 'active', 'pending', 'paid', 'reserved'] },
+        status: { $in: ['confirmed', 'active', 'pending', 'paid', 'overdue', 'reserved'] },
         $or: [
             {
                 pickupDate: { $lt: new Date(returnDate) },
