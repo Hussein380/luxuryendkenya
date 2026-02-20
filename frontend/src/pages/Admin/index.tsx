@@ -342,17 +342,17 @@ export default function Admin() {
 
           {/* Bookings Tab */}
           <TabsContent value="bookings">
-            <Card>
-              <div className="overflow-x-auto">
-                <table className="w-full">
+            <Card className="overflow-hidden">
+              <div className="overflow-x-auto sm:overflow-visible">
+                <table className="w-full table-fixed sm:table-auto">
                   <thead>
                     <tr className="border-b border-border">
-                      <th className="text-left p-2 sm:p-4 font-medium text-muted-foreground text-sm sm:text-base">Booking</th>
+                      <th className="text-left p-2 sm:p-4 font-medium text-muted-foreground text-xs sm:text-base w-[40%] sm:w-auto">Booking</th>
                       <th className="text-left p-2 sm:p-4 font-medium text-muted-foreground hidden md:table-cell">Customer</th>
                       <th className="text-left p-2 sm:p-4 font-medium text-muted-foreground hidden lg:table-cell">Dates</th>
-                      <th className="text-left p-2 sm:p-4 font-medium text-muted-foreground text-sm sm:text-base">Status</th>
-                      <th className="text-left p-2 sm:p-4 font-medium text-muted-foreground text-sm sm:text-base">Total</th>
-                      <th className="text-right p-2 sm:p-4 font-medium text-muted-foreground text-sm sm:text-base">Actions</th>
+                      <th className="text-left p-2 sm:p-4 font-medium text-muted-foreground text-xs sm:text-base w-[22%] sm:w-auto">Status</th>
+                      <th className="text-left p-2 sm:p-4 font-medium text-muted-foreground text-xs sm:text-base w-[23%] sm:w-auto">Total</th>
+                      <th className="text-right p-2 sm:p-4 font-medium text-muted-foreground text-xs sm:text-base w-[15%] sm:w-auto"></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -406,15 +406,17 @@ export default function Admin() {
                               <p className="text-xs text-muted-foreground">{booking.totalDays} days</p>
                             </td>
                             <td className="p-2 sm:p-4">
-                              <Badge className={`${statusInfo.color} text-xs sm:text-sm whitespace-nowrap`} variant="secondary">
+                              <Badge className={`${statusInfo.color} text-[10px] sm:text-sm px-1.5 py-0.5 sm:px-2.5 sm:py-0.5 whitespace-nowrap`} variant="secondary">
                                 {statusInfo.label}
                               </Badge>
                             </td>
-                            <td className="p-2 sm:p-4 font-semibold text-sm sm:text-base">{formatPrice(booking.totalPrice)}</td>
+                            <td className="p-2 sm:p-4">
+                              <span className="font-semibold text-xs sm:text-base whitespace-nowrap">{formatPrice(booking.totalPrice)}</span>
+                            </td>
                             <td className="p-2 sm:p-4 text-right">
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon">
+                                  <Button variant="ghost" size="icon" className="h-8 w-8">
                                     <MoreHorizontal className="w-4 h-4" />
                                   </Button>
                                 </DropdownMenuTrigger>
@@ -687,30 +689,28 @@ export default function Admin() {
                   ))}
                 </div>
               ) : revenueData?.data && revenueData.data.length > 0 ? (
-                <div className="overflow-x-auto -mx-2 sm:mx-0">
-                  <table className="w-full min-w-[600px]">
+                <div className="overflow-x-auto sm:overflow-visible -mx-2 sm:mx-0">
+                  <table className="w-full sm:min-w-[600px] table-fixed sm:table-auto">
                     <thead>
                       <tr className="border-b border-border">
-                        <th className="text-left p-2 sm:p-4 font-medium text-muted-foreground text-sm sm:text-base">Period</th>
-                        <th className="text-left p-2 sm:p-4 font-medium text-muted-foreground text-sm sm:text-base">Expected</th>
-                        <th className="text-left p-2 sm:p-4 font-medium text-muted-foreground text-sm sm:text-base">Collected</th>
-                        <th className="text-left p-2 sm:p-4 font-medium text-muted-foreground text-sm sm:text-base">Pending</th>
-                        <th className="text-left p-2 sm:p-4 font-medium text-muted-foreground text-sm sm:text-base">Lost</th>
-                        <th className="text-left p-2 sm:p-4 font-medium text-muted-foreground text-sm sm:text-base">Bookings</th>
+                        <th className="text-left p-2 sm:p-4 font-medium text-muted-foreground text-xs sm:text-base w-[22%] sm:w-auto">Period</th>
+                        <th className="text-left p-2 sm:p-4 font-medium text-muted-foreground text-xs sm:text-base w-[18%] sm:w-auto">Expected</th>
+                        <th className="text-left p-2 sm:p-4 font-medium text-muted-foreground text-xs sm:text-base w-[18%] sm:w-auto">Collected</th>
+                        <th className="text-left p-2 sm:p-4 font-medium text-muted-foreground text-xs sm:text-base w-[18%] sm:w-auto hidden sm:table-cell">Pending</th>
+                        <th className="text-left p-2 sm:p-4 font-medium text-muted-foreground text-xs sm:text-base w-[12%] sm:w-auto">Lost</th>
+                        <th className="text-left p-2 sm:p-4 font-medium text-muted-foreground text-xs sm:text-base w-[12%] sm:w-auto">#</th>
                       </tr>
                     </thead>
                     <tbody>
                       {revenueData.data.map((row, index) => (
                         <tr key={index} className="border-b border-border hover:bg-secondary/50">
-                          <td className="p-2 sm:p-4 font-medium text-sm sm:text-base">{row.period}</td>
-                          <td className="p-2 sm:p-4 text-blue-600 text-sm sm:text-base">{formatPrice(row.expectedRevenue)}</td>
-                          <td className="p-2 sm:p-4 text-green-600 text-sm sm:text-base">{formatPrice(row.collectedRevenue)}</td>
-                          <td className="p-2 sm:p-4 text-yellow-600 text-sm sm:text-base">{formatPrice(row.pendingCollection)}</td>
-                          <td className="p-2 sm:p-4 text-red-600 text-sm sm:text-base">{formatPrice(row.lostRevenue)}</td>
+                          <td className="p-2 sm:p-4 font-medium text-xs sm:text-base">{row.period}</td>
+                          <td className="p-2 sm:p-4 text-blue-600 text-xs sm:text-base">{formatPrice(row.expectedRevenue)}</td>
+                          <td className="p-2 sm:p-4 text-green-600 text-xs sm:text-base">{formatPrice(row.collectedRevenue)}</td>
+                          <td className="p-2 sm:p-4 text-yellow-600 text-xs sm:text-base hidden sm:table-cell">{formatPrice(row.pendingCollection)}</td>
+                          <td className="p-2 sm:p-4 text-red-600 text-xs sm:text-base">{formatPrice(row.lostRevenue)}</td>
                           <td className="p-2 sm:p-4">
-                            <Badge variant="secondary" className="text-xs sm:text-sm whitespace-nowrap">
-                              {row.bookingCount} ({row.cancelledCount} cancelled)
-                            </Badge>
+                            <span className="text-xs sm:text-sm">{row.bookingCount}</span>
                           </td>
                         </tr>
                       ))}
