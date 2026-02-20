@@ -158,11 +158,13 @@ export function BookingForm({ car }: BookingFormProps) {
       const result = await createBooking(submissionData);
 
       // Navigate to confirmation with full result
+      // result.data contains { booking, stkResult } from backend
+      const responseData = result.data || result;
       navigate('/booking/confirmation', {
         state: {
           car,
-          booking: result.booking,
-          stkResult: result.stkResult,
+          booking: responseData.booking || responseData,
+          stkResult: responseData.stkResult,
           type
         },
       });

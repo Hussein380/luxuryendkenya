@@ -24,6 +24,26 @@ export default function BookingConfirmation() {
   }
 
   const { car, booking, stkResult, type } = state;
+
+  // Handle missing booking data gracefully
+  if (!booking) {
+    return (
+      <Layout showFooter={false}>
+        <div className="min-h-[calc(100vh-64px)] flex items-center justify-center py-12 px-4">
+          <Card className="p-8 text-center max-w-md">
+            <h1 className="font-display text-2xl font-bold mb-4">Something Went Wrong</h1>
+            <p className="text-muted-foreground mb-6">
+              We couldn&apos;t retrieve your booking details. Please check your email or contact support.
+            </p>
+            <Button asChild>
+              <Link to="/cars">Browse Cars</Link>
+            </Button>
+          </Card>
+        </div>
+      </Layout>
+    );
+  }
+
   const bookingRef = booking.bookingId || 'Processing...';
 
   return (

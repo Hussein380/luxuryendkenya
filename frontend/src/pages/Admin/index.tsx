@@ -162,7 +162,7 @@ export default function Admin() {
   };
 
   const handleNoShow = async (id: string) => {
-    if (window.confirm('Mark this as No-Show and release the car immediately?')) {
+    if (window.confirm('Customer did not show up. Release car and make it available for others?')) {
       const updated = await markNoShow(id);
       if (updated) {
         loadData();
@@ -383,7 +383,7 @@ export default function Admin() {
                                   {['pending', 'confirmed', 'paid', 'reserved'].includes(booking.status) && (
                                     <DropdownMenuItem onClick={() => handleNoShow(booking.id)} className="text-warning">
                                       <UserX className="w-4 h-4 mr-2" />
-                                      Mark as No-Show
+                                      Make Available (No-Show)
                                     </DropdownMenuItem>
                                   )}
                                   <DropdownMenuItem className="text-destructive" onClick={() => handleCancelBooking(booking.id)}>
