@@ -347,12 +347,12 @@ export default function Admin() {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-border">
-                      <th className="text-left p-4 font-medium text-muted-foreground">Booking</th>
-                      <th className="text-left p-4 font-medium text-muted-foreground hidden md:table-cell">Customer</th>
-                      <th className="text-left p-4 font-medium text-muted-foreground hidden lg:table-cell">Dates</th>
-                      <th className="text-left p-4 font-medium text-muted-foreground">Status</th>
-                      <th className="text-left p-4 font-medium text-muted-foreground">Total</th>
-                      <th className="text-right p-4 font-medium text-muted-foreground">Actions</th>
+                      <th className="text-left p-2 sm:p-4 font-medium text-muted-foreground text-sm sm:text-base">Booking</th>
+                      <th className="text-left p-2 sm:p-4 font-medium text-muted-foreground hidden md:table-cell">Customer</th>
+                      <th className="text-left p-2 sm:p-4 font-medium text-muted-foreground hidden lg:table-cell">Dates</th>
+                      <th className="text-left p-2 sm:p-4 font-medium text-muted-foreground text-sm sm:text-base">Status</th>
+                      <th className="text-left p-2 sm:p-4 font-medium text-muted-foreground text-sm sm:text-base">Total</th>
+                      <th className="text-right p-2 sm:p-4 font-medium text-muted-foreground text-sm sm:text-base">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -380,38 +380,38 @@ export default function Admin() {
                             animate={{ opacity: 1 }}
                             className="border-b border-border hover:bg-secondary/50 transition-colors"
                           >
-                            <td className="p-4">
-                              <div className="flex items-center gap-3">
+                            <td className="p-2 sm:p-4">
+                              <div className="flex items-center gap-2 sm:gap-3">
                                 <LazyImage
                                   src={booking.carImage}
                                   alt={booking.carName}
-                                  className="w-12 h-8 object-cover rounded"
+                                  className="w-10 h-7 sm:w-12 sm:h-8 object-cover rounded"
                                   wrapperClassName="flex-shrink-0"
                                 />
-                                <div>
-                                  <p className="font-medium">{booking.id}</p>
-                                  <p className="text-sm text-muted-foreground">{booking.carName}</p>
+                                <div className="min-w-0">
+                                  <p className="font-medium text-sm truncate">{booking.id}</p>
+                                  <p className="text-xs sm:text-sm text-muted-foreground truncate">{booking.carName}</p>
                                 </div>
                               </div>
                             </td>
-                            <td className="p-4 hidden md:table-cell">
+                            <td className="p-2 sm:p-4 hidden md:table-cell">
                               <p className="text-sm">{booking.firstName} {booking.lastName}</p>
                               <p className="text-xs text-muted-foreground">{booking.customerEmail || booking.customerPhone}</p>
                             </td>
-                            <td className="p-4 hidden lg:table-cell">
+                            <td className="p-2 sm:p-4 hidden lg:table-cell">
                               <p className="text-sm">
                                 {new Date(booking.pickupDate).toLocaleDateString()} -{' '}
                                 {new Date(booking.returnDate).toLocaleDateString()}
                               </p>
                               <p className="text-xs text-muted-foreground">{booking.totalDays} days</p>
                             </td>
-                            <td className="p-4">
-                              <Badge className={statusInfo.color} variant="secondary">
+                            <td className="p-2 sm:p-4">
+                              <Badge className={`${statusInfo.color} text-xs sm:text-sm whitespace-nowrap`} variant="secondary">
                                 {statusInfo.label}
                               </Badge>
                             </td>
-                            <td className="p-4 font-semibold">{formatPrice(booking.totalPrice)}</td>
-                            <td className="p-4 text-right">
+                            <td className="p-2 sm:p-4 font-semibold text-sm sm:text-base">{formatPrice(booking.totalPrice)}</td>
+                            <td className="p-2 sm:p-4 text-right">
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button variant="ghost" size="icon">
@@ -559,7 +559,7 @@ export default function Admin() {
             <Card className="p-6">
               {/* Revenue Summary Cards */}
               {revenueData?.summary && (
-                <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-8">
                   <Card className="p-4 bg-blue-50 border-blue-200">
                     <p className="text-sm text-blue-600 mb-1">Expected Revenue</p>
                     <p className="text-xs text-blue-400 mb-2">(Projected)</p>
@@ -599,74 +599,81 @@ export default function Admin() {
               )}
 
               {/* Filters */}
-              <div className="flex flex-wrap gap-4 mb-6 items-end">
-                <div>
-                  <label className="text-sm text-muted-foreground mb-1 block">From Date</label>
-                  <Input
-                    type="date"
-                    value={revenueStartDate}
-                    onChange={(e) => setRevenueStartDate(e.target.value)}
-                  />
+              <div className="flex flex-col gap-4 mb-6">
+                {/* Date Inputs */}
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="flex-1">
+                    <label className="text-sm text-muted-foreground mb-1 block">From Date</label>
+                    <Input
+                      type="date"
+                      value={revenueStartDate}
+                      onChange={(e) => setRevenueStartDate(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-sm text-muted-foreground mb-1 block">To Date</label>
+                    <Input
+                      type="date"
+                      value={revenueEndDate}
+                      onChange={(e) => setRevenueEndDate(e.target.value)}
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="text-sm text-muted-foreground mb-1 block">To Date</label>
-                  <Input
-                    type="date"
-                    value={revenueEndDate}
-                    onChange={(e) => setRevenueEndDate(e.target.value)}
-                  />
-                </div>
+                
+                {/* Group By */}
                 <div>
                   <label className="text-sm text-muted-foreground mb-1 block">Group By</label>
-                  <div className="flex gap-1">
+                  <div className="flex flex-wrap gap-1">
                     {(['day', 'week', 'month', 'year'] as const).map((period) => (
                       <Button
                         key={period}
                         variant={revenueGroupBy === period ? 'default' : 'outline'}
                         size="sm"
                         onClick={() => setRevenueGroupBy(period)}
-                        className="capitalize"
+                        className="capitalize flex-1 sm:flex-none"
                       >
                         {period}
                       </Button>
                     ))}
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <Button onClick={loadRevenue} disabled={isLoadingRevenue}>
+                
+                {/* Action Buttons */}
+                <div className="flex flex-wrap gap-2">
+                  <Button onClick={loadRevenue} disabled={isLoadingRevenue} className="flex-1 sm:flex-none">
                     <Filter className="w-4 h-4 mr-2" />
                     {isLoadingRevenue ? 'Loading...' : 'Apply'}
                   </Button>
-                  <Button variant="outline" onClick={handleExportCSV}>
+                  <Button variant="outline" onClick={handleExportCSV} className="flex-1 sm:flex-none">
                     <Download className="w-4 h-4 mr-2" />
-                    Export CSV
+                    CSV
                   </Button>
-                  <Button variant="outline" onClick={handleExportPDFSummary}>
+                  <Button variant="outline" onClick={handleExportPDFSummary} className="flex-1 sm:flex-none">
                     <Download className="w-4 h-4 mr-2" />
                     PDF Summary
                   </Button>
-                  <Button variant="outline" onClick={handleExportPDFFull}>
+                  <Button variant="outline" onClick={handleExportPDFFull} className="flex-1 sm:flex-none">
                     <Download className="w-4 h-4 mr-2" />
-                    PDF Full Report
+                    PDF Full
                   </Button>
                 </div>
               </div>
 
               {/* Quick Filters */}
-              <div className="flex gap-2 mb-6">
-                <Button variant="outline" size="sm" onClick={() => handleQuickDateFilter('today')}>
+              <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 mb-6">
+                <Button variant="outline" size="sm" onClick={() => handleQuickDateFilter('today')} className="w-full sm:w-auto">
                   <Calendar className="w-4 h-4 mr-1" />
                   Today
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => handleQuickDateFilter('week')}>
+                <Button variant="outline" size="sm" onClick={() => handleQuickDateFilter('week')} className="w-full sm:w-auto">
                   <Calendar className="w-4 h-4 mr-1" />
                   This Week
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => handleQuickDateFilter('month')}>
+                <Button variant="outline" size="sm" onClick={() => handleQuickDateFilter('month')} className="w-full sm:w-auto">
                   <Calendar className="w-4 h-4 mr-1" />
                   This Month
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => handleQuickDateFilter('year')}>
+                <Button variant="outline" size="sm" onClick={() => handleQuickDateFilter('year')} className="w-full sm:w-auto">
                   <Calendar className="w-4 h-4 mr-1" />
                   This Year
                 </Button>
@@ -680,28 +687,28 @@ export default function Admin() {
                   ))}
                 </div>
               ) : revenueData?.data && revenueData.data.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
+                <div className="overflow-x-auto -mx-2 sm:mx-0">
+                  <table className="w-full min-w-[600px]">
                     <thead>
                       <tr className="border-b border-border">
-                        <th className="text-left p-4 font-medium text-muted-foreground">Period</th>
-                        <th className="text-left p-4 font-medium text-muted-foreground">Expected</th>
-                        <th className="text-left p-4 font-medium text-muted-foreground">Collected</th>
-                        <th className="text-left p-4 font-medium text-muted-foreground">Pending</th>
-                        <th className="text-left p-4 font-medium text-muted-foreground">Lost</th>
-                        <th className="text-left p-4 font-medium text-muted-foreground">Bookings</th>
+                        <th className="text-left p-2 sm:p-4 font-medium text-muted-foreground text-sm sm:text-base">Period</th>
+                        <th className="text-left p-2 sm:p-4 font-medium text-muted-foreground text-sm sm:text-base">Expected</th>
+                        <th className="text-left p-2 sm:p-4 font-medium text-muted-foreground text-sm sm:text-base">Collected</th>
+                        <th className="text-left p-2 sm:p-4 font-medium text-muted-foreground text-sm sm:text-base">Pending</th>
+                        <th className="text-left p-2 sm:p-4 font-medium text-muted-foreground text-sm sm:text-base">Lost</th>
+                        <th className="text-left p-2 sm:p-4 font-medium text-muted-foreground text-sm sm:text-base">Bookings</th>
                       </tr>
                     </thead>
                     <tbody>
                       {revenueData.data.map((row, index) => (
                         <tr key={index} className="border-b border-border hover:bg-secondary/50">
-                          <td className="p-4 font-medium">{row.period}</td>
-                          <td className="p-4 text-blue-600">{formatPrice(row.expectedRevenue)}</td>
-                          <td className="p-4 text-green-600">{formatPrice(row.collectedRevenue)}</td>
-                          <td className="p-4 text-yellow-600">{formatPrice(row.pendingCollection)}</td>
-                          <td className="p-4 text-red-600">{formatPrice(row.lostRevenue)}</td>
-                          <td className="p-4">
-                            <Badge variant="secondary">
+                          <td className="p-2 sm:p-4 font-medium text-sm sm:text-base">{row.period}</td>
+                          <td className="p-2 sm:p-4 text-blue-600 text-sm sm:text-base">{formatPrice(row.expectedRevenue)}</td>
+                          <td className="p-2 sm:p-4 text-green-600 text-sm sm:text-base">{formatPrice(row.collectedRevenue)}</td>
+                          <td className="p-2 sm:p-4 text-yellow-600 text-sm sm:text-base">{formatPrice(row.pendingCollection)}</td>
+                          <td className="p-2 sm:p-4 text-red-600 text-sm sm:text-base">{formatPrice(row.lostRevenue)}</td>
+                          <td className="p-2 sm:p-4">
+                            <Badge variant="secondary" className="text-xs sm:text-sm whitespace-nowrap">
                               {row.bookingCount} ({row.cancelledCount} cancelled)
                             </Badge>
                           </td>
