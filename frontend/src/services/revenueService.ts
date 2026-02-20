@@ -165,38 +165,27 @@ export async function exportRevenuePDF(filters: RevenueFilters = {}, includeDeta
     throw new Error('Failed to download PDF');
   }
   
-  // Create blob and download
+  // Create blob and handle based on device type
   const blob = await response.blob();
-  const suffix = includeDetails ? 'full' : 'summary';
-  const filename = `revenue-report-${suffix}-${filters.startDate || 'all'}-to-${filters.endDate || 'all'}.pdf`;
+  const url = window.URL.createObjectURL(blob);
   
-  // Check if it's iOS (which has strict download restrictions)
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+  // Check if mobile device
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
   
-  if (isIOS || isSafari) {
-    // For iOS/Safari, read as data URL
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      const dataUrl = e.target?.result as string;
-      if (dataUrl) {
-        const a = document.createElement('a');
-        a.href = dataUrl;
-        a.download = filename;
-        document.body.appendChild(a);
-        
-        setTimeout(() => {
-          a.click();
-          setTimeout(() => {
-            document.body.removeChild(a);
-          }, 100);
-        }, 0);
-      }
-    };
-    reader.readAsDataURL(blob);
+  if (isMobile) {
+    // Mobile: Open PDF in new tab (browser handles viewing/downloading)
+    const newWindow = window.open(url, '_blank');
+    if (newWindow) {
+      // Clean up blob URL after a delay (browser has it now)
+      setTimeout(() => window.URL.revokeObjectURL(url), 60000);
+    } else {
+      // Popup blocked - try direct navigation
+      window.location.href = url;
+    }
   } else {
-    // Standard approach for Android/Chrome
-    const url = window.URL.createObjectURL(blob);
+    // Desktop: Direct download
+    const suffix = includeDetails ? 'full' : 'summary';
+    const filename = `revenue-report-${suffix}-${filters.startDate || 'all'}-to-${filters.endDate || 'all'}.pdf`;
     const a = document.createElement('a');
     a.style.display = 'none';
     a.href = url;
