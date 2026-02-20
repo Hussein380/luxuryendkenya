@@ -224,22 +224,36 @@ export function getQuickDateRange(range: 'today' | 'week' | 'month' | 'year'): {
       startDate = endDate;
       break;
     case 'week': {
-      const weekAgo = new Date(now);
-      weekAgo.setDate(now.getDate() - 7);
-      startDate = weekAgo.toISOString().split('T')[0];
-      break;
+      // Current calendar week (Monday to Sunday)
+      const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
+      const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+      const monday = new Date(now);
+      monday.setDate(now.getDate() - diffToMonday);
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+      return { 
+        startDate: monday.toISOString().split('T')[0], 
+        endDate: sunday.toISOString().split('T')[0] 
+      };
     }
     case 'month': {
-      const monthAgo = new Date(now);
-      monthAgo.setMonth(now.getMonth() - 1);
-      startDate = monthAgo.toISOString().split('T')[0];
-      break;
+      // Current calendar month (1st to last day)
+      const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      startDate = firstDayOfMonth.toISOString().split('T')[0];
+      return { 
+        startDate, 
+        endDate: lastDayOfMonth.toISOString().split('T')[0] 
+      };
     }
     case 'year': {
-      const yearAgo = new Date(now);
-      yearAgo.setFullYear(now.getFullYear() - 1);
-      startDate = yearAgo.toISOString().split('T')[0];
-      break;
+      // Current calendar year (Jan 1 to Dec 31)
+      const firstDayOfYear = new Date(now.getFullYear(), 0, 1);
+      const lastDayOfYear = new Date(now.getFullYear(), 11, 31);
+      return { 
+        startDate: firstDayOfYear.toISOString().split('T')[0], 
+        endDate: lastDayOfYear.toISOString().split('T')[0] 
+      };
     }
     default:
       startDate = endDate;

@@ -131,6 +131,15 @@ export default function Admin() {
     const { startDate, endDate } = getQuickDateRange(range);
     setRevenueStartDate(startDate);
     setRevenueEndDate(endDate);
+    
+    // Auto-select best grouping based on date range
+    const groupByMap = {
+      'today': 'day',
+      'week': 'day',
+      'month': 'week',
+      'year': 'month'
+    } as const;
+    setRevenueGroupBy(groupByMap[range]);
   };
 
   const handleExportCSV = async () => {
@@ -622,24 +631,6 @@ export default function Admin() {
                   </div>
                 </div>
                 
-                {/* Group By */}
-                <div>
-                  <label className="text-sm text-muted-foreground mb-1 block">Group By</label>
-                  <div className="flex flex-wrap gap-1">
-                    {(['day', 'week', 'month', 'year'] as const).map((period) => (
-                      <Button
-                        key={period}
-                        variant={revenueGroupBy === period ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setRevenueGroupBy(period)}
-                        className="capitalize flex-1 sm:flex-none"
-                      >
-                        {period}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-                
                 {/* Action Buttons */}
                 <div className="flex flex-wrap gap-2">
                   <Button onClick={loadRevenue} disabled={isLoadingRevenue} className="flex-1 sm:flex-none">
@@ -661,24 +652,47 @@ export default function Admin() {
                 </div>
               </div>
 
-              {/* Quick Filters */}
-              <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 mb-6">
-                <Button variant="outline" size="sm" onClick={() => handleQuickDateFilter('today')} className="w-full sm:w-auto">
-                  <Calendar className="w-4 h-4 mr-1" />
-                  Today
+              {/* Quick Date Filters - Auto sets date range and grouping */}
+              <div className="mb-2">
+                <label className="text-sm text-muted-foreground mb-2 block">Select Time Period</label>
+                <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+                  <Button 
+                    variant={revenueStartDate === getQuickDateRange('today').startDate ? 'default' : 'outline'} 
+                    size="sm" 
+                    onClick={() => handleQuickDateFilter('today')} 
+                    className="w-full sm:w-auto"
+                  >
+                    <Calendar className="w-4 h-4 mr-1" />
+                    Today
+                  </Button>
+                  <Button 
+                    variant={revenueStartDate === getQuickDateRange('week').startDate ? 'default' : 'outline'} 
+                    size="sm" 
+                    onClick={() => handleQuickDateFilter('week')} 
+                    className="w-full sm:w-auto"
+                  >
+                    <Calendar className="w-4 h-4 mr-1" />
+                    This Week
+                  </Button>
+                  <Button 
+                    variant={revenueStartDate === getQuickDateRange('month').startDate ? 'default' : 'outline'} 
+                    size="sm" 
+                    onClick={() => handleQuickDateFilter('month')} 
+                    className="w-full sm:w-auto"
+                  >
+                    <Calendar className="w-4 h-4 mr-1" />
+                    This Month
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => handleQuickDateFilter('week')} className="w-full sm:w-auto">
-                  <Calendar className="w-4 h-4 mr-1" />
-                  This Week
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => handleQuickDateFilter('month')} className="w-full sm:w-auto">
-                  <Calendar className="w-4 h-4 mr-1" />
-                  This Month
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => handleQuickDateFilter('year')} className="w-full sm:w-auto">
-                  <Calendar className="w-4 h-4 mr-1" />
-                  This Year
-                </Button>
+                  <Button 
+                    variant={revenueStartDate === getQuickDateRange('year').startDate ? 'default' : 'outline'} 
+                    size="sm" 
+                    onClick={() => handleQuickDateFilter('year')} 
+                    className="w-full sm:w-auto"
+                  >
+                    <Calendar className="w-4 h-4 mr-1" />
+                    This Year
+                  </Button>
+                </div>
               </div>
 
               {/* Revenue Table */}
