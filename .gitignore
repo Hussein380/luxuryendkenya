@@ -23,6 +23,7 @@ api/.env
 
 # Backend dev / test artifacts (do not push)
 backend/tests/
+backend/src/test/
 backend/scripts/test-*.js
 backend/scripts/debug-*.js
 backend/test-*.js

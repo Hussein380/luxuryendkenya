@@ -52,7 +52,7 @@ const emailTemplates = {
             <p>A customer has requested to reserve a car.</p>
             <p><strong>Booking ID:</strong> ${data.bookingId}</p>
             <p><strong>Customer:</strong> ${data.customerName} (${data.customerPhone || 'N/A'})</p>
-            <p><strong>Email:</strong> ${data.customerEmail || 'Pervided in dashboard'}</p>
+            <p><strong>Email:</strong> ${data.customerEmail || 'Provided in dashboard'}</p>
             <p><strong>Car:</strong> ${data.carName}</p>
             <p><strong>Pickup Date:</strong> ${new Date(data.pickupDate).toLocaleDateString()}</p>
             <p>Log in to the admin dashboard to review documents and confirm.</p>

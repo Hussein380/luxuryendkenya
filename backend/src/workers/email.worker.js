@@ -80,6 +80,38 @@ const emailTemplates = {
             <p>Safe travels!<br/>The Sol Travel Team</p>
         `,
     }),
+    'admin-new-reservation': (data) => ({
+        subject: `New Reservation Request #${data.bookingId}`,
+        html: `
+            <h1>New Reservation Request</h1>
+            <p>A customer has requested to reserve a car.</p>
+            <p><strong>Booking ID:</strong> ${data.bookingId}</p>
+            <p><strong>Customer:</strong> ${data.customerName} (${data.customerPhone || 'N/A'})</p>
+            <p><strong>Email:</strong> ${data.customerEmail || 'Provided in dashboard'}</p>
+            <p><strong>Car:</strong> ${data.carName}</p>
+            <p><strong>Pickup Date:</strong> ${new Date(data.pickupDate).toLocaleDateString()}</p>
+            <p>Log in to the admin dashboard to review documents and confirm.</p>
+        `,
+    }),
+    'booking-receipt': (data) => ({
+        subject: `Payment Receipt for Booking #${data.bookingId}`,
+        html: `
+            <div style="font-family: sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px;">
+                <h1 style="color: #4CAF50;">Payment Received!</h1>
+                <p>Hi ${data.customerName},</p>
+                <p>Thank you for your payment. Here is your receipt for your car booking.</p>
+                <hr />
+                <p><strong>Booking ID:</strong> ${data.bookingId}</p>
+                <p><strong>Car:</strong> ${data.carName}</p>
+                <p><strong>Amount Paid:</strong> KES ${data.amount.toLocaleString()}</p>
+                <p><strong>Receipt Number:</strong> ${data.receiptNumber}</p>
+                <p><strong>Date:</strong> ${new Date(data.paidAt).toLocaleString()}</p>
+                <hr />
+                <p>If you have any questions, please contact our support.</p>
+                <p>Best regards,<br>The Sol Travel Team</p>
+            </div>
+        `,
+    }),
 };
 
 // Create the worker

@@ -173,7 +173,7 @@ exports.updateBookingStatus = async (req, res) => {
         if (status === 'confirmed') {
             await addEmailJob('booking-confirmation', {
                 bookingId: booking.bookingId,
-                customerName: booking.customerName,
+                customerName: `${booking.firstName} ${booking.lastName}`,
                 customerEmail: booking.customerEmail,
                 carName: booking.car?.name || 'N/A',
                 pickupDate: booking.pickupDate,
