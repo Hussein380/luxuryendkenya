@@ -88,36 +88,49 @@ export async function exportRevenueCSV(filters: RevenueFilters = {}): Promise<vo
   
   // Create blob and download
   const blob = await response.blob();
-  const url = window.URL.createObjectURL(blob);
+  const filename = `revenue-${filters.startDate || 'all'}-to-${filters.endDate || 'all'}.csv`;
   
-  // Mobile-friendly download approach
-  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  // Check if it's iOS (which has strict download restrictions)
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
   
-  if (isMobile) {
-    // For mobile, open in new tab (browser will handle download)
-    const newWindow = window.open(url, '_blank');
-    if (!newWindow) {
-      // Fallback if popup blocked
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `revenue-${filters.startDate || 'all'}-to-${filters.endDate || 'all'}.csv`;
-      a.target = '_blank';
-      a.rel = 'noopener noreferrer';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    }
-    // Delay cleanup to allow download to start
-    setTimeout(() => window.URL.revokeObjectURL(url), 10000);
+  if (isIOS || isSafari) {
+    // For iOS/Safari, read as text and offer data URL
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const dataUrl = e.target?.result as string;
+      if (dataUrl) {
+        // Create a temporary link with data URL
+        const a = document.createElement('a');
+        a.href = dataUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        
+        // Use click with slight delay for iOS
+        setTimeout(() => {
+          a.click();
+          setTimeout(() => {
+            document.body.removeChild(a);
+          }, 100);
+        }, 0);
+      }
+    };
+    reader.readAsDataURL(blob);
   } else {
-    // Desktop: direct download
+    // Standard approach for Android/Chrome
+    const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
+    a.style.display = 'none';
     a.href = url;
-    a.download = `revenue-${filters.startDate || 'all'}-to-${filters.endDate || 'all'}.csv`;
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
+    
+    // Cleanup
+    setTimeout(() => {
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    }, 100);
   }
 }
 
@@ -154,38 +167,47 @@ export async function exportRevenuePDF(filters: RevenueFilters = {}, includeDeta
   
   // Create blob and download
   const blob = await response.blob();
-  const url = window.URL.createObjectURL(blob);
   const suffix = includeDetails ? 'full' : 'summary';
   const filename = `revenue-report-${suffix}-${filters.startDate || 'all'}-to-${filters.endDate || 'all'}.pdf`;
   
-  // Mobile-friendly download approach
-  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  // Check if it's iOS (which has strict download restrictions)
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
   
-  if (isMobile) {
-    // For mobile, open in new tab (browser will handle download)
-    const newWindow = window.open(url, '_blank');
-    if (!newWindow) {
-      // Fallback if popup blocked
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      a.target = '_blank';
-      a.rel = 'noopener noreferrer';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    }
-    // Delay cleanup to allow download to start
-    setTimeout(() => window.URL.revokeObjectURL(url), 10000);
+  if (isIOS || isSafari) {
+    // For iOS/Safari, read as data URL
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const dataUrl = e.target?.result as string;
+      if (dataUrl) {
+        const a = document.createElement('a');
+        a.href = dataUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        
+        setTimeout(() => {
+          a.click();
+          setTimeout(() => {
+            document.body.removeChild(a);
+          }, 100);
+        }, 0);
+      }
+    };
+    reader.readAsDataURL(blob);
   } else {
-    // Desktop: direct download
+    // Standard approach for Android/Chrome
+    const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
+    a.style.display = 'none';
     a.href = url;
     a.download = filename;
     document.body.appendChild(a);
     a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
+    
+    setTimeout(() => {
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    }, 100);
   }
 }
 
