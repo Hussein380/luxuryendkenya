@@ -89,13 +89,36 @@ export async function exportRevenueCSV(filters: RevenueFilters = {}): Promise<vo
   // Create blob and download
   const blob = await response.blob();
   const url = window.URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `revenue-${filters.startDate || 'all'}-to-${filters.endDate || 'all'}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  window.URL.revokeObjectURL(url);
+  
+  // Mobile-friendly download approach
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  
+  if (isMobile) {
+    // For mobile, open in new tab (browser will handle download)
+    const newWindow = window.open(url, '_blank');
+    if (!newWindow) {
+      // Fallback if popup blocked
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `revenue-${filters.startDate || 'all'}-to-${filters.endDate || 'all'}.csv`;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+    // Delay cleanup to allow download to start
+    setTimeout(() => window.URL.revokeObjectURL(url), 10000);
+  } else {
+    // Desktop: direct download
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `revenue-${filters.startDate || 'all'}-to-${filters.endDate || 'all'}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  }
 }
 
 /**
@@ -132,14 +155,38 @@ export async function exportRevenuePDF(filters: RevenueFilters = {}, includeDeta
   // Create blob and download
   const blob = await response.blob();
   const url = window.URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
   const suffix = includeDetails ? 'full' : 'summary';
-  a.download = `revenue-report-${suffix}-${filters.startDate || 'all'}-to-${filters.endDate || 'all'}.pdf`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  window.URL.revokeObjectURL(url);
+  const filename = `revenue-report-${suffix}-${filters.startDate || 'all'}-to-${filters.endDate || 'all'}.pdf`;
+  
+  // Mobile-friendly download approach
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  
+  if (isMobile) {
+    // For mobile, open in new tab (browser will handle download)
+    const newWindow = window.open(url, '_blank');
+    if (!newWindow) {
+      // Fallback if popup blocked
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+    // Delay cleanup to allow download to start
+    setTimeout(() => window.URL.revokeObjectURL(url), 10000);
+  } else {
+    // Desktop: direct download
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  }
 }
 
 /**
