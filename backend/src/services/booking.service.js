@@ -2,6 +2,41 @@ const Booking = require('../models/Booking');
 const Car = require('../models/Car');
 const BookingExtra = require('../models/BookingExtra');
 
+// Simple in-memory lock for race condition prevention
+const bookingLocks = new Map();
+
+/**
+ * Acquire a lock for booking a car
+ * @param {string} carId - Car ID
+ * @returns {boolean} - Whether lock was acquired
+ */
+const acquireLock = (carId) => {
+    if (bookingLocks.has(carId)) {
+        return false;
+    }
+    bookingLocks.set(carId, Date.now());
+    return true;
+};
+
+/**
+ * Release a lock for booking a car
+ * @param {string} carId - Car ID
+ */
+const releaseLock = (carId) => {
+    bookingLocks.delete(carId);
+};
+
+// Clean up old locks every 30 seconds
+setInterval(() => {
+    const now = Date.now();
+    const lockTimeout = 10000; // 10 seconds
+    for (const [carId, timestamp] of bookingLocks.entries()) {
+        if (now - timestamp > lockTimeout) {
+            bookingLocks.delete(carId);
+        }
+    }
+}, 30000);
+
 /**
  * Check if a car is available for a given date range
  */
@@ -25,6 +60,16 @@ exports.checkCarAvailability = async (carId, pickupDate, returnDate) => {
 
     return !overlappingBooking;
 };
+
+/**
+ * Acquire booking lock for a car
+ */
+exports.acquireBookingLock = acquireLock;
+
+/**
+ * Release booking lock for a car
+ */
+exports.releaseBookingLock = releaseLock;
 
 /**
  * Calculate total price for a booking

@@ -24,6 +24,7 @@ export function BookingForm({ car }: BookingFormProps) {
   const [selectedExtras, setSelectedExtras] = useState<string[]>([]);
   const [unavailableDates, setUnavailableDates] = useState<UnavailableDateRange[]>([]);
   const [dateConflict, setDateConflict] = useState<string | null>(null);
+  const [dateError, setDateError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [idImage, setIdImage] = useState<File | null>(null);
@@ -55,24 +56,48 @@ export function BookingForm({ car }: BookingFormProps) {
     loadData();
   }, [car.id]);
 
-  // Check availability whenever dates change
+  // Check availability and validate dates whenever they change
   useEffect(() => {
-    if (formData.pickupDate && formData.returnDate) {
-      const { available, conflictingBooking } = checkDateAvailability(
-        formData.pickupDate,
-        formData.returnDate,
-        unavailableDates
-      );
+    // Reset errors
+    setDateError(null);
+    setDateConflict(null);
 
-      if (!available && conflictingBooking) {
-        const start = new Date(conflictingBooking.start).toLocaleDateString();
-        const end = new Date(conflictingBooking.end).toLocaleDateString();
-        setDateConflict(`This car is already booked from ${start} to ${end}`);
-      } else {
-        setDateConflict(null);
-      }
-    } else {
-      setDateConflict(null);
+    if (!formData.pickupDate || !formData.returnDate) return;
+
+    const pickup = new Date(formData.pickupDate);
+    const returnD = new Date(formData.returnDate);
+    const now = new Date();
+
+    // Validate: Pickup cannot be in the past
+    if (pickup < now) {
+      setDateError('Pickup date cannot be in the past');
+      return;
+    }
+
+    // Validate: Return must be after pickup
+    if (returnD <= pickup) {
+      setDateError('Return date must be after pickup date');
+      return;
+    }
+
+    // Validate: Minimum rental period (1 hour)
+    const diffHours = (returnD.getTime() - pickup.getTime()) / (1000 * 60 * 60);
+    if (diffHours < 1) {
+      setDateError('Minimum rental period is 1 hour');
+      return;
+    }
+
+    // Check for conflicts with existing bookings
+    const { available, conflictingBooking } = checkDateAvailability(
+      formData.pickupDate,
+      formData.returnDate,
+      unavailableDates
+    );
+
+    if (!available && conflictingBooking) {
+      const start = new Date(conflictingBooking.start).toLocaleDateString();
+      const end = new Date(conflictingBooking.end).toLocaleDateString();
+      setDateConflict(`This car is already booked from ${start} to ${end}`);
     }
   }, [formData.pickupDate, formData.returnDate, unavailableDates]);
 
@@ -158,6 +183,7 @@ export function BookingForm({ car }: BookingFormProps) {
     idImage &&
     licenseImage &&
     days > 0 &&
+    !dateError &&
     !dateConflict;
 
   return (
@@ -197,12 +223,24 @@ export function BookingForm({ car }: BookingFormProps) {
           </div>
         </div>
 
+        {/* Date Validation Error */}
+        {dateError && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 text-destructive text-sm"
+          >
+            <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+            <span>{dateError}</span>
+          </motion.div>
+        )}
+
         {/* Date Conflict Warning */}
         {dateConflict && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 text-destructive text-sm"
+            className="flex items-center gap-2 p-3 rounded-lg bg-warning/10 text-warning text-sm"
           >
             <AlertTriangle className="w-4 h-4 flex-shrink-0" />
             <span>{dateConflict}</span>

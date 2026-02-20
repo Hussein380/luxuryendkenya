@@ -36,11 +36,18 @@ exports.createBooking = async (req, res) => {
         const idImageUrl = req.files.idImage[0].path;
         const licenseImageUrl = req.files.licenseImage[0].path;
 
-        // 2. Check Availability
-        const isAvailable = await bookingService.checkCarAvailability(carId, new Date(pickupDate), new Date(returnDate));
-        if (!isAvailable) {
-            return sendError(res, 'Car is not available for the selected dates', 400);
+        // 2. Acquire lock to prevent race conditions
+        const lockAcquired = bookingService.acquireBookingLock(carId);
+        if (!lockAcquired) {
+            return sendError(res, 'This car is being booked by another user. Please try again in a few seconds.', 429);
         }
+
+        try {
+            // 3. Check Availability (double-check after acquiring lock)
+            const isAvailable = await bookingService.checkCarAvailability(carId, new Date(pickupDate), new Date(returnDate));
+            if (!isAvailable) {
+                return sendError(res, 'Car is not available for the selected dates', 400);
+            }
 
         // 3. Calculate Pricing
         const { totalDays, totalPrice } = await bookingService.calculateTotalPrice(
@@ -76,6 +83,10 @@ exports.createBooking = async (req, res) => {
         });
 
         // 5. Handle Flow Logic
+        // CLEAR CACHE: New booking affects car availability dates
+        const { clearCarCache } = require('../config/redis.config');
+        await clearCarCache();
+
         if (bookingType === 'book_now') {
             // Initiate M-Pesa STK Push
             try {
@@ -102,6 +113,10 @@ exports.createBooking = async (req, res) => {
                 });
             }
             return sendSuccess(res, booking, 'Reservation submitted successfully. Admin will contact you soon.', 201);
+        }
+        } finally {
+            // Release lock regardless of success or failure
+            bookingService.releaseBookingLock(carId);
         }
     } catch (error) {
         logger.error(`Create Booking error: ${error.message}`);
@@ -234,6 +249,10 @@ exports.handleMpesaCallback = async (req, res) => {
             const now = new Date();
             if (now >= booking.pickupDate && now <= booking.returnDate) {
                 await Car.findByIdAndUpdate(booking.car, { available: false });
+                
+                // CLEAR CACHE: Car availability changed
+                const { clearCarCache } = require('../config/redis.config');
+                await clearCarCache();
             }
 
             // Send receipt email
@@ -291,6 +310,10 @@ exports.confirmPayment = async (req, res) => {
         const now = new Date();
         if (now >= booking.pickupDate && now <= booking.returnDate) {
             await Car.findByIdAndUpdate(booking.car, { available: false });
+            
+            // CLEAR CACHE: Car availability changed
+            const { clearCarCache } = require('../config/redis.config');
+            await clearCarCache();
         }
 
         // Send receipt email
@@ -328,6 +351,10 @@ exports.cancelBooking = async (req, res) => {
         // Instead of deleting, we mark as cancelled
         booking.status = 'cancelled';
         await booking.save();
+
+        // CLEAR CACHE: Cancelled booking frees up dates
+        const { clearCarCache } = require('../config/redis.config');
+        await clearCarCache();
 
         sendSuccess(res, booking, 'Booking successfully cancelled');
     } catch (error) {

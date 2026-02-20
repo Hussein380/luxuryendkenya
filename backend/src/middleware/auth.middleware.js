@@ -2,6 +2,12 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { sendError } = require('../utils/response');
 
+// Validate JWT_SECRET is configured
+if (!process.env.JWT_SECRET) {
+    console.error('FATAL ERROR: JWT_SECRET is not defined in environment variables');
+    process.exit(1);
+}
+
 // Protect routes
 exports.protect = async (req, res, next) => {
     let token;

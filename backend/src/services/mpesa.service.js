@@ -48,11 +48,25 @@ const initiateStkPush = async (phoneNumber, amount, bookingId) => {
         const password = Buffer.from(`${shortcode}${passkey}${timestamp}`).toString('base64');
 
         // Ensure phone number is in correct format (2547xxxxxxxx)
-        let formattedPhone = phoneNumber.replace(/[^0-9]/g, '');
+        // Handle formats: 07xxxxxxxx, 011xxxxxxxx, +2547xxxxxxxx, 2547xxxxxxxx
+        let formattedPhone = phoneNumber.replace(/\s/g, ''); // Remove spaces only
+        
+        // Remove + if present
+        if (formattedPhone.startsWith('+')) {
+            formattedPhone = formattedPhone.slice(1);
+        }
+        
+        // Remove non-digit characters
+        formattedPhone = formattedPhone.replace(/\D/g, '');
+        
+        // Convert 07xx or 011x to 254xxx format
         if (formattedPhone.startsWith('0')) {
             formattedPhone = '254' + formattedPhone.slice(1);
-        } else if (formattedPhone.startsWith('+')) {
-            formattedPhone = formattedPhone.slice(1);
+        }
+        
+        // Validate: Must be 12 digits starting with 254
+        if (!/^254[0-9]{9}$/.test(formattedPhone)) {
+            throw new Error('Invalid phone number format. Please use format: 07xxxxxxxx, 011xxxxxxx, or +2547xxxxxxxx');
         }
 
         const data = {
