@@ -256,7 +256,8 @@ exports.exportRevenueCSV = async (req, res) => {
  */
 exports.exportRevenuePDF = async (req, res) => {
     try {
-        const { startDate, endDate } = req.query;
+        const { startDate, endDate, includeDetails = 'true' } = req.query;
+        const showDetails = includeDetails === 'true';
 
         const dateFilter = {};
         if (startDate || endDate) {
@@ -278,96 +279,164 @@ exports.exportRevenuePDF = async (req, res) => {
         // Pipe PDF to response
         doc.pipe(res);
 
-        // Header
-        doc.fontSize(24).font('Helvetica-Bold').text('SOL TRAVEL GROUP', 50, 50);
-        doc.fontSize(14).font('Helvetica').text('Revenue Report', 50, 80);
-        
-        // Date range
-        const dateRangeText = startDate && endDate 
-            ? `${new Date(startDate).toLocaleDateString('en-KE')} - ${new Date(endDate).toLocaleDateString('en-KE')}`
-            : 'All Time';
-        doc.fontSize(10).text(`Period: ${dateRangeText}`, 50, 100);
-        doc.text(`Generated: ${new Date().toLocaleString('en-KE')}`, 50, 115);
+        // Helper function to add header on each page
+        const addHeader = (pageNum, totalPages) => {
+            // Logo placeholder (text-based since we can't easily fetch images)
+            doc.fontSize(20).font('Helvetica-Bold').fillColor('#1e3a5f').text('🚗 SOL TRAVEL GROUP', 50, 40);
+            doc.fontSize(12).font('Helvetica').fillColor('#666666').text('Premium Car Rentals in Kenya', 50, 65);
+            
+            // Report title
+            doc.fontSize(18).font('Helvetica-Bold').fillColor('#333333').text('Revenue Report', 50, 95);
+            
+            // Date range
+            const dateRangeText = startDate && endDate 
+                ? `${new Date(startDate).toLocaleDateString('en-KE')} - ${new Date(endDate).toLocaleDateString('en-KE')}`
+                : 'All Time';
+            doc.fontSize(10).font('Helvetica').fillColor('#666666').text(`Period: ${dateRangeText}`, 50, 120);
+            doc.text(`Generated: ${new Date().toLocaleString('en-KE')}   |   Page ${pageNum} of ${totalPages}`, 50, 135);
+            
+            // Line separator
+            doc.moveTo(50, 155).lineTo(550, 155).stroke('#1e3a5f');
+        };
 
-        // Line separator
-        doc.moveTo(50, 135).lineTo(550, 135).stroke();
+        // Calculate total pages estimate
+        const rowsPerPage = 35;
+        const totalPages = showDetails ? Math.ceil(bookings.length / rowsPerPage) + 1 : 1;
+        let currentPage = 1;
 
-        // Summary Section
-        doc.fontSize(16).font('Helvetica-Bold').text('Summary', 50, 155);
+        // First page header
+        addHeader(currentPage, totalPages);
+
+        // Summary Section - 6 Key Metrics in 2x3 Grid Layout
+        doc.fontSize(16).font('Helvetica-Bold').fillColor('#333333').text('Financial Summary', 50, 175);
         
-        const summaryData = [
-            ['Expected Revenue (Projected):', `KES ${metrics.expectedRevenue.toLocaleString()}`],
-            ['Collected Revenue (Actual):', `KES ${metrics.collectedRevenue.toLocaleString()}`],
-            ['Pending Collection:', `KES ${metrics.pendingCollection.toLocaleString()}`],
-            ['Lost Revenue (Cancelled):', `KES ${metrics.lostRevenue.toLocaleString()}`],
-            ['Penalty Revenue:', `KES ${metrics.penaltyRevenue.toLocaleString()}`],
-            ['Collection Rate:', `${metrics.collectionRate}%`],
-            ['Total Bookings:', metrics.totalBookings.toString()],
-            ['Completed:', metrics.completedBookings.toString()],
-            ['Cancelled:', metrics.cancelledBookings.toString()]
+        const summaryMetrics = [
+            { label: 'Expected Revenue', sublabel: '(Projected)', value: `KES ${metrics.expectedRevenue.toLocaleString()}`, color: '#2563eb' },
+            { label: 'Collected Revenue', sublabel: '(Actual)', value: `KES ${metrics.collectedRevenue.toLocaleString()}`, color: '#16a34a' },
+            { label: 'Pending Collection', sublabel: '(Outstanding)', value: `KES ${metrics.pendingCollection.toLocaleString()}`, color: '#ca8a04' },
+            { label: 'Collection Rate', sublabel: '(% Collected)', value: `${metrics.collectionRate}%`, color: '#9333ea' },
+            { label: 'Total Bookings', sublabel: '(All bookings)', value: metrics.totalBookings.toString(), color: '#0891b2' },
+            { label: 'Lost Revenue', sublabel: '(Cancelled)', value: `KES ${metrics.lostRevenue.toLocaleString()}`, color: '#dc2626' }
         ];
 
-        let y = 180;
-        summaryData.forEach(([label, value]) => {
-            doc.fontSize(10).font('Helvetica').text(label, 50, y);
-            doc.font('Helvetica-Bold').text(value, 250, y);
-            y += 18;
+        let y = 210;
+        const boxWidth = 240;
+        const boxHeight = 70;
+        
+        summaryMetrics.forEach((metric, index) => {
+            const col = index % 2;
+            const row = Math.floor(index / 2);
+            const x = 50 + (col * (boxWidth + 20));
+            const boxY = y + (row * (boxHeight + 15));
+            
+            // Draw box
+            doc.rect(x, boxY, boxWidth, boxHeight).stroke('#e5e7eb').fill('#f9fafb');
+            
+            // Label
+            doc.fontSize(10).font('Helvetica').fillColor('#6b7280').text(metric.label, x + 10, boxY + 10);
+            doc.fontSize(8).fillColor('#9ca3af').text(metric.sublabel, x + 10, boxY + 24);
+            
+            // Value
+            doc.fontSize(16).font('Helvetica-Bold').fillColor(metric.color).text(metric.value, x + 10, boxY + 40);
         });
 
-        // Line separator
-        doc.moveTo(50, y + 10).lineTo(550, y + 10).stroke();
+        y = 210 + (3 * (boxHeight + 15)) + 20;
 
-        // Bookings Detail Table
-        y += 30;
-        doc.fontSize(16).font('Helvetica-Bold').text('Booking Details', 50, y);
-        y += 25;
-
-        // Table headers
-        const headers = ['Date', 'Booking ID', 'Customer', 'Status', 'Amount'];
-        const colWidths = [70, 100, 120, 80, 80];
-        let x = 50;
-
-        doc.fontSize(9).font('Helvetica-Bold');
-        headers.forEach((header, i) => {
-            doc.text(header, x, y);
-            x += colWidths[i];
-        });
-
-        y += 15;
-        doc.moveTo(50, y).lineTo(550, y).stroke();
-        y += 10;
-
-        // Table rows
-        doc.font('Helvetica').fontSize(8);
-        bookings.slice(0, 50).forEach((booking) => { // Limit to 50 rows for PDF
-            if (y > 700) { // New page if needed
+        // Only show booking details if requested
+        if (showDetails && bookings.length > 0) {
+            // Add new page if needed
+            if (y > 600) {
                 doc.addPage();
-                y = 50;
+                currentPage++;
+                addHeader(currentPage, totalPages);
+                y = 175;
             }
 
-            x = 50;
-            const rowData = [
-                new Date(booking.createdAt).toLocaleDateString('en-KE'),
-                booking.bookingId,
-                `${booking.firstName} ${booking.lastName}`.substring(0, 18),
-                booking.status,
-                `KES ${booking.totalPrice.toLocaleString()}`
-            ];
+            // Line separator
+            doc.moveTo(50, y).lineTo(550, y).stroke('#e5e7eb');
+            y += 20;
 
-            rowData.forEach((cell, i) => {
-                doc.text(cell, x, y);
+            // Bookings Detail Table Header
+            doc.fontSize(14).font('Helvetica-Bold').fillColor('#333333').text('Booking Details', 50, y);
+            y += 25;
+
+            // Table headers
+            const headers = ['Date', 'Booking ID', 'Customer', 'Status', 'Amount'];
+            const colWidths = [70, 110, 130, 90, 100];
+            let x = 50;
+
+            doc.fontSize(9).font('Helvetica-Bold').fillColor('#374151');
+            headers.forEach((header, i) => {
+                doc.text(header, x, y);
                 x += colWidths[i];
             });
 
-            y += 14;
-        });
+            y += 18;
+            doc.moveTo(50, y - 5).lineTo(550, y - 5).stroke('#d1d5db');
 
-        // Footer
-        doc.fontSize(8).font('Helvetica').text(
-            '© Sol Travel Group - Confidential Report',
+            // Table rows
+            doc.font('Helvetica').fontSize(8).fillColor('#4b5563');
+            
+            bookings.forEach((booking, index) => {
+                // Add new page if needed
+                if (y > 700) {
+                    doc.addPage();
+                    currentPage++;
+                    addHeader(currentPage, totalPages);
+                    y = 175;
+                    
+                    // Redraw table headers on new page
+                    x = 50;
+                    doc.fontSize(9).font('Helvetica-Bold').fillColor('#374151');
+                    headers.forEach((header, i) => {
+                        doc.text(header, x, y);
+                        x += colWidths[i];
+                    });
+                    y += 18;
+                    doc.moveTo(50, y - 5).lineTo(550, y - 5).stroke('#d1d5db');
+                    doc.font('Helvetica').fontSize(8).fillColor('#4b5563');
+                }
+
+                x = 50;
+                const statusColors = {
+                    paid: '#16a34a',
+                    completed: '#0891b2',
+                    confirmed: '#2563eb',
+                    active: '#7c3aed',
+                    pending: '#ca8a04',
+                    reserved: '#ea580c',
+                    cancelled: '#dc2626',
+                    overdue: '#dc2626'
+                };
+                
+                const rowData = [
+                    new Date(booking.createdAt).toLocaleDateString('en-KE'),
+                    booking.bookingId,
+                    `${booking.firstName} ${booking.lastName}`.substring(0, 20),
+                    booking.status,
+                    `KES ${booking.totalPrice.toLocaleString()}`
+                ];
+
+                rowData.forEach((cell, i) => {
+                    if (i === 3) { // Status column with color
+                        doc.fillColor(statusColors[booking.status] || '#6b7280');
+                    } else {
+                        doc.fillColor('#4b5563');
+                    }
+                    doc.text(cell, x, y);
+                    x += colWidths[i];
+                });
+
+                y += 16;
+            });
+        }
+
+        // Footer on last page
+        doc.fontSize(8).font('Helvetica').fillColor('#9ca3af').text(
+            '© Sol Travel Group - Confidential Report - Internal Use Only',
             50,
             doc.page.height - 50,
-            { align: 'center' }
+            { align: 'center', width: 500 }
         );
 
         doc.end();

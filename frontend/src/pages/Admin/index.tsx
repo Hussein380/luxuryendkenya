@@ -17,7 +17,11 @@ import {
   Clock,
   CheckCircle2,
   AlertCircle,
-  UserX
+  UserX,
+  Download,
+  BarChart3,
+  Calendar,
+  Filter
 } from 'lucide-react';
 import { formatPrice } from '@/lib/currency';
 import { Button } from '@/components/ui/button';
@@ -36,6 +40,7 @@ import { LazyImage } from '@/components/common/LazyImage';
 import { Skeleton } from '@/components/common/Skeleton';
 import { getCars, deleteCar } from '@/services/carService';
 import { getBookings, updateBookingStatus, cancelBooking, startTrip, markAsOverdue, markNoShow } from '@/services/bookingService';
+import { getRevenue, exportRevenueCSV, exportRevenuePDF, getQuickDateRange, type RevenueResponse } from '@/services/revenueService';
 import { AdminCarModal } from '@/components/admin/AdminCarModal';
 import { CheckInModal } from '@/components/admin/CheckInModal';
 import { AdminBookingDetailsModal } from '@/components/admin/AdminBookingDetailsModal';
@@ -60,6 +65,13 @@ export default function Admin() {
   const [searchQuery, setSearchQuery] = useState('');
   const [carPage, setCarPage] = useState(1);
   const [carTotal, setCarTotal] = useState(0);
+
+  // Revenue State
+  const [revenueData, setRevenueData] = useState<RevenueResponse | null>(null);
+  const [isLoadingRevenue, setIsLoadingRevenue] = useState(false);
+  const [revenueStartDate, setRevenueStartDate] = useState('');
+  const [revenueEndDate, setRevenueEndDate] = useState('');
+  const [revenueGroupBy, setRevenueGroupBy] = useState<'day' | 'week' | 'month' | 'year'>('day');
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -99,6 +111,60 @@ export default function Admin() {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Revenue Functions
+  const loadRevenue = async () => {
+    setIsLoadingRevenue(true);
+    try {
+      const data = await getRevenue({
+        startDate: revenueStartDate || undefined,
+        endDate: revenueEndDate || undefined,
+        groupBy: revenueGroupBy
+      });
+      setRevenueData(data);
+    } finally {
+      setIsLoadingRevenue(false);
+    }
+  };
+
+  const handleQuickDateFilter = (range: 'today' | 'week' | 'month' | 'year') => {
+    const { startDate, endDate } = getQuickDateRange(range);
+    setRevenueStartDate(startDate);
+    setRevenueEndDate(endDate);
+  };
+
+  const handleExportCSV = async () => {
+    try {
+      await exportRevenueCSV({
+        startDate: revenueStartDate || undefined,
+        endDate: revenueEndDate || undefined
+      });
+    } catch (error) {
+      alert('Failed to export CSV. Please try again.');
+    }
+  };
+
+  const handleExportPDFSummary = async () => {
+    try {
+      await exportRevenuePDF({
+        startDate: revenueStartDate || undefined,
+        endDate: revenueEndDate || undefined
+      }, false); // Summary only
+    } catch (error) {
+      alert('Failed to export PDF. Please try again.');
+    }
+  };
+
+  const handleExportPDFFull = async () => {
+    try {
+      await exportRevenuePDF({
+        startDate: revenueStartDate || undefined,
+        endDate: revenueEndDate || undefined
+      }, true); // Full report with details
+    } catch (error) {
+      alert('Failed to export PDF. Please try again.');
+    }
+  };
 
   const handleAddCar = () => {
     setSelectedCar(null);
@@ -268,9 +334,10 @@ export default function Admin() {
 
         {/* Tabs */}
         <Tabs defaultValue="bookings" className="space-y-6">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsList className="grid w-full max-w-lg grid-cols-3">
             <TabsTrigger value="bookings">Bookings</TabsTrigger>
             <TabsTrigger value="cars">Cars</TabsTrigger>
+            <TabsTrigger value="revenue" onClick={loadRevenue}>Revenue</TabsTrigger>
           </TabsList>
 
           {/* Bookings Tab */}
@@ -485,6 +552,172 @@ export default function Admin() {
                 </Button>
               </div>
             )}
+          </TabsContent>
+
+          {/* Revenue Tab */}
+          <TabsContent value="revenue">
+            <Card className="p-6">
+              {/* Revenue Summary Cards */}
+              {revenueData?.summary && (
+                <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+                  <Card className="p-4 bg-blue-50 border-blue-200">
+                    <p className="text-sm text-blue-600 mb-1">Expected Revenue</p>
+                    <p className="text-xs text-blue-400 mb-2">(Projected)</p>
+                    <p className="font-display text-xl font-bold text-blue-700">
+                      {formatPrice(revenueData.summary.expectedRevenue)}
+                    </p>
+                  </Card>
+                  <Card className="p-4 bg-green-50 border-green-200">
+                    <p className="text-sm text-green-600 mb-1">Collected Revenue</p>
+                    <p className="text-xs text-green-400 mb-2">(Actual - Money in hand)</p>
+                    <p className="font-display text-xl font-bold text-green-700">
+                      {formatPrice(revenueData.summary.collectedRevenue)}
+                    </p>
+                  </Card>
+                  <Card className="p-4 bg-yellow-50 border-yellow-200">
+                    <p className="text-sm text-yellow-600 mb-1">Pending Collection</p>
+                    <p className="text-xs text-yellow-400 mb-2">(Outstanding)</p>
+                    <p className="font-display text-xl font-bold text-yellow-700">
+                      {formatPrice(revenueData.summary.pendingCollection)}
+                    </p>
+                  </Card>
+                  <Card className="p-4 bg-red-50 border-red-200">
+                    <p className="text-sm text-red-600 mb-1">Lost Revenue</p>
+                    <p className="text-xs text-red-400 mb-2">(Cancelled bookings)</p>
+                    <p className="font-display text-xl font-bold text-red-700">
+                      {formatPrice(revenueData.summary.lostRevenue)}
+                    </p>
+                  </Card>
+                  <Card className="p-4 bg-purple-50 border-purple-200">
+                    <p className="text-sm text-purple-600 mb-1">Collection Rate</p>
+                    <p className="text-xs text-purple-400 mb-2">(% collected)</p>
+                    <p className="font-display text-xl font-bold text-purple-700">
+                      {revenueData.summary.collectionRate}%
+                    </p>
+                  </Card>
+                </div>
+              )}
+
+              {/* Filters */}
+              <div className="flex flex-wrap gap-4 mb-6 items-end">
+                <div>
+                  <label className="text-sm text-muted-foreground mb-1 block">From Date</label>
+                  <Input
+                    type="date"
+                    value={revenueStartDate}
+                    onChange={(e) => setRevenueStartDate(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm text-muted-foreground mb-1 block">To Date</label>
+                  <Input
+                    type="date"
+                    value={revenueEndDate}
+                    onChange={(e) => setRevenueEndDate(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm text-muted-foreground mb-1 block">Group By</label>
+                  <div className="flex gap-1">
+                    {(['day', 'week', 'month', 'year'] as const).map((period) => (
+                      <Button
+                        key={period}
+                        variant={revenueGroupBy === period ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setRevenueGroupBy(period)}
+                        className="capitalize"
+                      >
+                        {period}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button onClick={loadRevenue} disabled={isLoadingRevenue}>
+                    <Filter className="w-4 h-4 mr-2" />
+                    {isLoadingRevenue ? 'Loading...' : 'Apply'}
+                  </Button>
+                  <Button variant="outline" onClick={handleExportCSV}>
+                    <Download className="w-4 h-4 mr-2" />
+                    Export CSV
+                  </Button>
+                  <Button variant="outline" onClick={handleExportPDFSummary}>
+                    <Download className="w-4 h-4 mr-2" />
+                    PDF Summary
+                  </Button>
+                  <Button variant="outline" onClick={handleExportPDFFull}>
+                    <Download className="w-4 h-4 mr-2" />
+                    PDF Full Report
+                  </Button>
+                </div>
+              </div>
+
+              {/* Quick Filters */}
+              <div className="flex gap-2 mb-6">
+                <Button variant="outline" size="sm" onClick={() => handleQuickDateFilter('today')}>
+                  <Calendar className="w-4 h-4 mr-1" />
+                  Today
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => handleQuickDateFilter('week')}>
+                  <Calendar className="w-4 h-4 mr-1" />
+                  This Week
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => handleQuickDateFilter('month')}>
+                  <Calendar className="w-4 h-4 mr-1" />
+                  This Month
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => handleQuickDateFilter('year')}>
+                  <Calendar className="w-4 h-4 mr-1" />
+                  This Year
+                </Button>
+              </div>
+
+              {/* Revenue Table */}
+              {isLoadingRevenue ? (
+                <div className="space-y-2">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Skeleton key={i} className="h-12 w-full" />
+                  ))}
+                </div>
+              ) : revenueData?.data && revenueData.data.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-border">
+                        <th className="text-left p-4 font-medium text-muted-foreground">Period</th>
+                        <th className="text-left p-4 font-medium text-muted-foreground">Expected</th>
+                        <th className="text-left p-4 font-medium text-muted-foreground">Collected</th>
+                        <th className="text-left p-4 font-medium text-muted-foreground">Pending</th>
+                        <th className="text-left p-4 font-medium text-muted-foreground">Lost</th>
+                        <th className="text-left p-4 font-medium text-muted-foreground">Bookings</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {revenueData.data.map((row, index) => (
+                        <tr key={index} className="border-b border-border hover:bg-secondary/50">
+                          <td className="p-4 font-medium">{row.period}</td>
+                          <td className="p-4 text-blue-600">{formatPrice(row.expectedRevenue)}</td>
+                          <td className="p-4 text-green-600">{formatPrice(row.collectedRevenue)}</td>
+                          <td className="p-4 text-yellow-600">{formatPrice(row.pendingCollection)}</td>
+                          <td className="p-4 text-red-600">{formatPrice(row.lostRevenue)}</td>
+                          <td className="p-4">
+                            <Badge variant="secondary">
+                              {row.bookingCount} ({row.cancelledCount} cancelled)
+                            </Badge>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="text-center py-12 text-muted-foreground">
+                  <BarChart3 className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>No revenue data found for the selected period</p>
+                  <p className="text-sm mt-2">Select a date range and click Apply to view revenue</p>
+                </div>
+              )}
+            </Card>
           </TabsContent>
         </Tabs>
 
