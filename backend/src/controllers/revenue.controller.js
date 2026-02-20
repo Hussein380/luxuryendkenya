@@ -203,45 +203,81 @@ exports.exportRevenueCSV = async (req, res) => {
         }
 
         const bookings = await Booking.find(dateFilter)
-            .populate('car', 'name brand')
+            .populate('car', 'name brand model')
             .lean();
 
-        // Create CSV content
+        // Helper to safely get customer name
+        const getCustomerName = (b) => {
+            const first = b.firstName || b.customerName?.split(' ')[0] || 'Guest';
+            const last = b.lastName || b.customerName?.split(' ').slice(1).join(' ') || '';
+            return `${first} ${last}`.trim();
+        };
+
+        // Helper to safely get car name
+        const getCarName = (b) => {
+            if (b.car?.name) return `${b.car.brand || ''} ${b.car.name}`.trim();
+            if (b.carName) return b.carName;
+            return 'Unknown Car';
+        };
+
+        // Helper to format date consistently
+        const formatDate = (date) => {
+            return new Date(date).toLocaleDateString('en-GB', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            });
+        };
+
+        // Helper to format currency
+        const formatCurrency = (amount) => {
+            return `KES ${(amount || 0).toLocaleString('en-KE')}`;
+        };
+
+        // Create CSV with proper escaping
+        const escapeCsv = (value) => {
+            const str = String(value || '');
+            if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                return `"${str.replace(/"/g, '""')}"`;
+            }
+            return str;
+        };
+
+        // Headers - Accountant-friendly revenue ledger
         const headers = [
             'Date',
             'Booking ID',
             'Customer',
             'Car',
             'Status',
-            'Total Price',
-            'Penalty Fee',
-            'Amount Paid',
-            'Payment Status'
-        ].join(',');
+            'Total Amount (KES)',
+            'Amount Paid (KES)',
+            'Balance (KES)'
+        ].map(escapeCsv).join(',');
 
         const rows = bookings.map(b => {
             const amountPaid = ['paid', 'completed'].includes(b.status) 
                 ? b.totalPrice 
                 : (b.penaltyFee?.status === 'paid' ? b.penaltyFee.amount : 0);
             
+            const balance = b.totalPrice - amountPaid;
+            
             return [
-                new Date(b.createdAt).toLocaleDateString('en-KE'),
-                b.bookingId,
-                `"${b.firstName} ${b.lastName}"`,
-                `"${b.car?.name || 'N/A'}"`,
-                b.status,
-                b.totalPrice,
-                b.penaltyFee?.amount || 0,
-                amountPaid,
-                b.status === 'cancelled' ? 'Cancelled' : 
-                    (amountPaid >= b.totalPrice ? 'Fully Paid' : 
-                        (amountPaid > 0 ? 'Partial' : 'Unpaid'))
+                formatDate(b.createdAt),
+                escapeCsv(b.bookingId),
+                escapeCsv(getCustomerName(b)),
+                escapeCsv(getCarName(b)),
+                escapeCsv(b.status),
+                formatCurrency(b.totalPrice),
+                formatCurrency(amountPaid),
+                formatCurrency(balance)
             ].join(',');
         });
 
-        const csv = [headers, ...rows].join('\n');
+        // Add BOM for Excel UTF-8 support
+        const csv = '\uFEFF' + [headers, ...rows].join('\n');
 
-        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
         res.setHeader('Content-Disposition', `attachment; filename=revenue-${startDate || 'all'}-to-${endDate || 'all'}.csv`);
         res.send(csv);
     } catch (error) {
