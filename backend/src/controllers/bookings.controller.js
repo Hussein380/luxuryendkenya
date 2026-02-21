@@ -49,71 +49,71 @@ exports.createBooking = async (req, res) => {
                 return sendError(res, 'Car is not available for the selected dates', 400);
             }
 
-        // 3. Calculate Pricing
-        const { totalDays, totalPrice } = await bookingService.calculateTotalPrice(
-            carId,
-            new Date(pickupDate),
-            new Date(returnDate),
-            extras
-        );
+            // 3. Calculate Pricing
+            const { totalDays, totalPrice } = await bookingService.calculateTotalPrice(
+                carId,
+                new Date(pickupDate),
+                new Date(returnDate),
+                extras
+            );
 
-        // 4. Create Booking
-        const bookingId = bookingService.generateBookingId();
-        const initialStatus = bookingType === 'reserve' ? 'reserved' : 'pending';
+            // 4. Create Booking
+            const bookingId = bookingService.generateBookingId();
+            const initialStatus = bookingType === 'reserve' ? 'reserved' : 'pending';
 
-        const booking = await Booking.create({
-            bookingId,
-            car: carId,
-            user: req.user ? req.user._id : null,
-            firstName,
-            lastName,
-            customerEmail,
-            customerPhone,
-            pickupDate,
-            returnDate,
-            pickupLocation,
-            returnLocation,
-            extras,
-            totalDays,
-            totalPrice,
-            idImageUrl,
-            licenseImageUrl,
-            bookingType,
-            status: initialStatus
-        });
+            const booking = await Booking.create({
+                bookingId,
+                car: carId,
+                user: req.user ? req.user._id : null,
+                firstName,
+                lastName,
+                customerEmail,
+                customerPhone,
+                pickupDate,
+                returnDate,
+                pickupLocation,
+                returnLocation,
+                extras,
+                totalDays,
+                totalPrice,
+                idImageUrl,
+                licenseImageUrl,
+                bookingType,
+                status: initialStatus
+            });
 
-        // 5. Handle Flow Logic
-        // CLEAR CACHE: New booking affects car availability dates
-        const { clearCarCache } = require('../config/redis.config');
-        await clearCarCache();
+            // 5. Handle Flow Logic
+            // CLEAR CACHE: New booking affects car availability dates
+            const { clearCarCache } = require('../config/redis.config');
+            await clearCarCache();
 
-        if (bookingType === 'book_now') {
-            // Initiate M-Pesa STK Push
-            try {
-                const stkResult = await mpesaService.initiateStkPush(customerPhone, totalPrice, bookingId);
-                return sendSuccess(res, { booking, stkResult }, 'Booking initiated. Please complete payment on your phone.', 201);
-            } catch (err) {
-                logger.error(`Initial STK Push failed for ${bookingId}: ${err.message}`);
-                // Instead of success, return error so frontend doesn't jump to confirmation page
-                return sendError(res, `Payment initiation failed: ${err.message}. Please try again from your dashboard.`, 400);
+            if (bookingType === 'book_now') {
+                // Initiate M-Pesa STK Push
+                try {
+                    const stkResult = await mpesaService.initiateStkPush(customerPhone, totalPrice, bookingId);
+                    return sendSuccess(res, { booking, stkResult }, 'Booking initiated. Please complete payment on your phone.', 201);
+                } catch (err) {
+                    logger.error(`Initial STK Push failed for ${bookingId}: ${err.message}`);
+                    // Instead of success, return error so frontend doesn't jump to confirmation page
+                    return sendError(res, `Payment initiation failed: ${err.message}. Please try again from your dashboard.`, 400);
+                }
+            } else {
+                // Reserve flow - Notify Admin
+                if (ADMIN_EMAIL) {
+                    const car = await Car.findById(carId).select('name').lean();
+                    await addEmailJob('admin-new-reservation', {
+                        to: ADMIN_EMAIL,
+                        bookingId,
+                        customerName: `${firstName} ${lastName}`,
+                        customerEmail,
+                        customerPhone,
+                        carName: car?.name || 'N/A',
+                        pickupDate,
+                        totalPrice
+                    });
+                }
+                return sendSuccess(res, booking, 'Reservation submitted successfully. Admin will contact you soon.', 201);
             }
-        } else {
-            // Reserve flow - Notify Admin
-            if (ADMIN_EMAIL) {
-                const car = await Car.findById(carId).select('name').lean();
-                await addEmailJob('admin-new-reservation', {
-                    to: ADMIN_EMAIL,
-                    bookingId,
-                    customerName: `${firstName} ${lastName}`,
-                    customerEmail,
-                    customerPhone,
-                    carName: car?.name || 'N/A',
-                    pickupDate,
-                    totalPrice
-                });
-            }
-            return sendSuccess(res, booking, 'Reservation submitted successfully. Admin will contact you soon.', 201);
-        }
         } finally {
             // Release lock regardless of success or failure
             bookingService.releaseBookingLock(carId);
@@ -194,7 +194,8 @@ exports.updateBookingStatus = async (req, res) => {
                 pickupDate: booking.pickupDate,
                 returnDate: booking.returnDate,
                 pickupLocation: booking.pickupLocation,
-                totalPrice: booking.totalPrice
+                totalPrice: booking.totalPrice,
+                paymentDetails: booking.paymentDetails?.mpesaReceiptNumber ? booking.paymentDetails : null
             });
         }
 
@@ -249,7 +250,7 @@ exports.handleMpesaCallback = async (req, res) => {
             const now = new Date();
             if (now >= booking.pickupDate && now <= booking.returnDate) {
                 await Car.findByIdAndUpdate(booking.car, { available: false });
-                
+
                 // CLEAR CACHE: Car availability changed
                 const { clearCarCache } = require('../config/redis.config');
                 await clearCarCache();
@@ -310,7 +311,7 @@ exports.confirmPayment = async (req, res) => {
         const now = new Date();
         if (now >= booking.pickupDate && now <= booking.returnDate) {
             await Car.findByIdAndUpdate(booking.car, { available: false });
-            
+
             // CLEAR CACHE: Car availability changed
             const { clearCarCache } = require('../config/redis.config');
             await clearCarCache();

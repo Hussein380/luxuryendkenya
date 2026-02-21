@@ -138,6 +138,17 @@ const emailTemplates = {
                 <p style="margin: 8px 0; color: #155724; font-size: 15px;"><strong>Return Date:</strong> ${new Date(data.returnDate).toLocaleDateString('en-KE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
                 <p style="margin: 8px 0; color: #155724; font-size: 15px;"><strong>Total:</strong> <span style="font-size: 18px; font-weight: 600;">KES ${data.totalPrice.toLocaleString()}</span></p>
             </div>
+
+            ${data.paymentDetails ? `
+            <div style="background-color: #f8f9fa; border: 2px solid #28a745; border-radius: 8px; padding: 25px; margin: 25px 0;">
+                <h3 style="color: #28a745; margin: 0 0 20px 0; font-size: 20px; text-align: center; border-bottom: 2px solid #28a745; padding-bottom: 15px;">OFFICIAL RECEIPT</h3>
+                <p style="margin: 10px 0; color: #495057; font-size: 15px;"><strong>Amount Paid:</strong> <span style="color: #28a745; font-size: 20px; font-weight: 700;">KES ${data.paymentDetails.amount.toLocaleString()}</span></p>
+                <p style="margin: 10px 0; color: #495057; font-size: 15px;"><strong>M-Pesa Receipt:</strong> <span style="font-family: monospace;">${data.paymentDetails.mpesaReceiptNumber}</span></p>
+                <p style="margin: 10px 0; color: #495057; font-size: 15px;"><strong>Payment Date:</strong> ${new Date(data.paymentDetails.paidAt).toLocaleString('en-KE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                <p style="margin: 10px 0; color: #495057; font-size: 12px; text-align: center; font-style: italic;">Thank you for your payment!</p>
+            </div>
+            ` : ''}
+
             <div style="background-color: #e7f3ff; border-radius: 8px; padding: 20px; margin: 25px 0;">
                 <h4 style="color: #1e3a5f; margin: 0 0 10px 0;">📍 Pickup Location</h4>
                 <p style="color: #495057; margin: 0; font-size: 15px;">Eastleigh 12nd St, Sec 2, Nairobi</p>
