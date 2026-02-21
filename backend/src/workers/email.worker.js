@@ -25,15 +25,20 @@ const emailWorker = new Worker(
         const recipient = data.to || data.email || data.customerEmail;
 
         try {
-            const result = await resend.emails.send({
+            const { data: resendData, error } = await resend.emails.send({
                 from: 'Sol Travel Group <onboarding@resend.dev>', // Use your verified domain later
                 to: recipient,
                 subject: emailContent.subject,
                 html: emailContent.html,
             });
 
-            logger.info(`Email sent successfully: ${result.id}`);
-            return result;
+            if (error) {
+                logger.error(`Resend error: ${error.message} (Type: ${error.name})`);
+                throw new Error(error.message);
+            }
+
+            logger.info(`Email sent successfully: ${resendData?.id}`);
+            return resendData;
         } catch (error) {
             logger.error(`Failed to send email: ${error.message}`);
             throw error;

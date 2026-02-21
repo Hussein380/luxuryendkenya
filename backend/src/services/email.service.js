@@ -272,14 +272,20 @@ const sendEmailDirectly = async (type, data) => {
     }
     try {
         const emailContent = template(data);
-        const result = await resend.emails.send({
+        const { data: resendData, error } = await resend.emails.send({
             from: 'Sol Travel Group <onboarding@resend.dev>',
             to: recipient,
             subject: emailContent.subject,
             html: emailContent.html,
         });
-        logger.info(`Email sent directly: ${type} -> ${recipient}`);
-        return result;
+
+        if (error) {
+            logger.error(`Resend error: ${error.message} (Type: ${error.name})`);
+            return null;
+        }
+
+        logger.info(`Email sent directly: ${type} -> ${recipient} (ID: ${resendData?.id})`);
+        return resendData;
     } catch (error) {
         logger.error(`Failed to send email: ${error.message}`);
         return null;

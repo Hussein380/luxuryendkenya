@@ -3,10 +3,10 @@ const rateLimit = require('express-rate-limit');
 // Custom key generator for Vercel/proxy environments
 const keyGenerator = (req) => {
     // Use X-Forwarded-For header (set by Vercel) or fallback to IP
-    return req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 
-           req.headers['x-real-ip'] || 
-           req.ip || 
-           'unknown';
+    return req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
+        req.headers['x-real-ip'] ||
+        req.ip ||
+        'unknown';
 };
 
 // Common options for all limiters (Vercel-compatible)
@@ -22,7 +22,7 @@ const commonOptions = {
 const globalLimiter = rateLimit({
     ...commonOptions,
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // Limit each IP to 100 requests per windowMs
+    max: 300, // Limit each IP to 300 requests per windowMs
     message: {
         success: false,
         error: 'Too many requests from this IP, please try again after 15 minutes'

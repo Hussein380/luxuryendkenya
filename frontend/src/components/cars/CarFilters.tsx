@@ -19,6 +19,7 @@ export function CarFilters({ filters, onFilterChange, totalResults }: CarFilters
   const [isOpen, setIsOpen] = useState(false);
   const [categories, setCategories] = useState<{ id: string; name: string; icon: string }[]>([]);
   const [locations, setLocations] = useState<string[]>([]);
+  const [localSearch, setLocalSearch] = useState(filters.search || '');
   const [priceRange, setPriceRange] = useState([0, 500]);
 
   useEffect(() => {
@@ -30,8 +31,24 @@ export function CarFilters({ filters, onFilterChange, totalResults }: CarFilters
     loadFiltersData();
   }, []);
 
+  // Sync local search with filters prop (for clear all or external changes)
+  useEffect(() => {
+    setLocalSearch(filters.search || '');
+  }, [filters.search]);
+
+  // Debounce search update
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (localSearch !== (filters.search || '')) {
+        onFilterChange({ ...filters, search: localSearch || undefined });
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [localSearch, onFilterChange, filters]);
+
   const handleSearchChange = (value: string) => {
-    onFilterChange({ ...filters, search: value || undefined });
+    setLocalSearch(value);
   };
 
   const handleCategoryChange = (category: string) => {
@@ -88,7 +105,7 @@ export function CarFilters({ filters, onFilterChange, totalResults }: CarFilters
             type="search"
             placeholder="Search cars, brands..."
             className="pl-10 h-12"
-            value={filters.search || ''}
+            value={localSearch}
             onChange={(e) => handleSearchChange(e.target.value)}
           />
         </div>

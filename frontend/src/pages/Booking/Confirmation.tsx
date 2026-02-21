@@ -143,9 +143,6 @@ export default function BookingConfirmation() {
               <p className="text-sm text-center font-medium text-accent">
                 {stkResult.CustomerMessage || 'STK Push sent to your phone.'}
               </p>
-              <p className="text-[10px] text-center text-muted-foreground mt-2">
-                Reference: {stkResult.CheckoutRequestID}
-              </p>
             </Card>
           )}
 
@@ -158,10 +155,6 @@ export default function BookingConfirmation() {
           </Card>
 
           <div className="flex flex-col sm:flex-row gap-3">
-            <Button variant="outline" className="flex-1 gap-2">
-              <Download className="w-4 h-4" />
-              Download Receipt
-            </Button>
             <Button asChild className="flex-1 gradient-accent text-accent-foreground border-0 gap-2">
               <Link to="/">
                 <Home className="w-4 h-4" />
