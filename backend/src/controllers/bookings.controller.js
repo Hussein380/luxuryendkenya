@@ -91,6 +91,13 @@ exports.createBooking = async (req, res) => {
                 // Initiate M-Pesa STK Push
                 try {
                     const stkResult = await mpesaService.initiateStkPush(customerPhone, totalPrice, bookingId);
+
+                    // CRITICAL: Save CheckoutRequestID so callback can find this booking
+                    booking.paymentDetails = {
+                        transactionId: stkResult.CheckoutRequestID
+                    };
+                    await booking.save();
+
                     return sendSuccess(res, { booking, stkResult }, 'Booking initiated. Please complete payment on your phone.', 201);
                 } catch (err) {
                     logger.error(`Initial STK Push failed for ${bookingId}: ${err.message}`);
@@ -163,6 +170,22 @@ exports.getBookingById = async (req, res) => {
         }
 
         sendSuccess(res, booking);
+    } catch (error) {
+        sendError(res, error.message, 500);
+    }
+};
+
+// @desc    Get booking payment status (public, for polling after STK push)
+// @route   GET /api/bookings/status/:bookingId
+// @access  Public
+exports.getBookingStatus = async (req, res) => {
+    try {
+        const booking = await Booking.findOne({ bookingId: req.params.bookingId })
+            .select('status bookingId');
+        if (!booking) {
+            return sendError(res, 'Booking not found', 404);
+        }
+        sendSuccess(res, { status: booking.status, bookingId: booking.bookingId });
     } catch (error) {
         sendError(res, error.message, 500);
     }
@@ -256,7 +279,7 @@ exports.handleMpesaCallback = async (req, res) => {
                 await clearCarCache();
             }
 
-            // Send receipt email
+            // Send receipt email to customer
             await addEmailJob('booking-receipt', {
                 bookingId: booking.bookingId,
                 customerName: `${booking.firstName} ${booking.lastName}`,
@@ -266,6 +289,18 @@ exports.handleMpesaCallback = async (req, res) => {
                 receiptNumber: mpesaReceiptNumber,
                 paidAt: booking.paymentDetails.paidAt
             });
+
+            // Notify Admin of successful payment
+            if (ADMIN_EMAIL) {
+                await addEmailJob('admin-payment-success', {
+                    to: ADMIN_EMAIL,
+                    bookingId: booking.bookingId,
+                    customerName: `${booking.firstName} ${booking.lastName}`,
+                    carName: (await Car.findById(booking.car).select('name').lean())?.name || 'N/A',
+                    amount,
+                    mpesaReceiptNumber
+                });
+            }
 
             logger.info(`M-Pesa Payment Success: ${booking.bookingId} - ${mpesaReceiptNumber}`);
         } else {

@@ -65,11 +65,11 @@ export default function BookingConfirmation() {
               <CheckCircle className="w-10 h-10 text-accent-foreground" />
             </motion.div>
             <h1 className="font-display text-3xl font-bold mb-2">
-              {type === 'book_now' ? 'Booking Initiated!' : 'Reservation Submitted!'}
+              {type === 'book_now' ? 'Payment Confirmed!' : 'Reservation Submitted!'}
             </h1>
             <p className="text-muted-foreground">
               {type === 'book_now'
-                ? 'Please check your phone for the M-Pesa payment prompt.'
+                ? 'Your M-Pesa payment has been received. Your booking is now being processed.'
                 : 'Your reservation has been received. Admin will contact you soon.'}
             </p>
           </div>
@@ -149,7 +149,7 @@ export default function BookingConfirmation() {
           <Card className="p-4 bg-success/10 border-success/20 mb-6">
             <p className="text-sm text-center">
               {type === 'book_now'
-                ? 'We will send a receipt once the payment is confirmed.'
+                ? 'Your payment is confirmed. An admin will review your booking and send a confirmation email with your receipt.'
                 : `We've received your request. An admin will review your documents and contact you at ${booking.customerPhone}.`}
             </p>
           </Card>

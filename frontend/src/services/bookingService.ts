@@ -183,6 +183,17 @@ export function calculateBookingPrice(
 }
 
 /**
+ * Poll booking payment status (public endpoint, no auth needed)
+ */
+export async function pollBookingStatus(bookingId: string): Promise<string> {
+  const response = await apiRequest<{ status: string; bookingId: string }>(`/bookings/status/${bookingId}`);
+  if (response.success && response.data) {
+    return response.data.status;
+  }
+  throw new Error('Could not check payment status');
+}
+
+/**
  * Start trip (Admin only)
  */
 export async function startTrip(id: string): Promise<Booking | null> {

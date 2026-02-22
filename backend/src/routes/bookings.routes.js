@@ -3,6 +3,7 @@ const {
     createBooking,
     getBookings,
     getBookingById,
+    getBookingStatus,
     updateBookingStatus,
     cancelBooking,
     getBookingExtras,
@@ -35,6 +36,7 @@ router.post('/',
 );
 router.post('/mpesa-callback', handleMpesaCallback);
 router.get('/extras', getBookingExtras);
+router.get('/status/:bookingId', getBookingStatus);
 
 // Protected routes (Admin or User's own)
 router.get('/', protect, getBookings);
