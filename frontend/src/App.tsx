@@ -26,7 +26,7 @@ const App = () => (
       <AuthProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
+        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <Routes>
             <Route path="/" element={<ClientOnlyRoute><Home /></ClientOnlyRoute>} />
             <Route path="/cars" element={<ClientOnlyRoute><Cars /></ClientOnlyRoute>} />

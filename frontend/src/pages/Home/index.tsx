@@ -1,7 +1,15 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Search, MapPin, Calendar, ArrowRight, Sparkles, Shield, Clock, Star } from 'lucide-react';
+import { Search, MapPin, Calendar, ArrowRight, Sparkles, Shield, Clock, Star, Car as CarIcon, Plane, X } from 'lucide-react';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+  SheetClose,
+} from "@/components/ui/sheet";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Layout } from '@/components/common/Layout';
@@ -18,7 +26,17 @@ export default function Home() {
   const [recommendations, setRecommendations] = useState<{ car: Car; reason: string; tags: string[] }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeService, setActiveService] = useState<'hire' | 'transfer'>('hire');
-  const [transferDetails, setTransferDetails] = useState({ pickup: '', dropoff: '', date: '' });
+  const [hireDetails, setHireDetails] = useState({
+    location: '',
+    pickupDate: new Date().toISOString().split('T')[0],
+    returnDate: new Date(Date.now() + 86400000).toISOString().split('T')[0]
+  });
+  const [transferDetails, setTransferDetails] = useState({
+    pickup: '',
+    dropoff: '',
+    date: new Date(Date.now() + 86400000).toISOString().slice(0, 16)
+  });
+  const [isMobileFormOpen, setIsMobileFormOpen] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -105,8 +123,8 @@ Date: ${transferDetails.date || 'Not specified'}`;
               Whether you need to hire a premium vehicle or require a seamless airport transfer, we've got you covered.
             </p>
 
-            {/* Search Form - Premium Glassmorphism */}
-            <div className="bg-card/10 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 md:p-8 shadow-2xl space-y-6 max-w-3xl mx-auto mt-12 overflow-hidden relative">
+            {/* Desktop Search Card - Hidden on Mobile */}
+            <div className="hidden md:block bg-card/10 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 md:p-8 shadow-2xl space-y-6 max-w-3xl mx-auto mt-12 overflow-hidden relative">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-accent opacity-60" />
 
               {/* Service Switcher Tabs */}
@@ -140,21 +158,41 @@ Date: ${transferDetails.date || 'Not specified'}`;
                       <label className="text-[10px] font-bold uppercase tracking-widest text-accent/90 ml-1">Location</label>
                       <div className="relative">
                         <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-accent" />
-                        <Input required placeholder="Enter location" className="pl-10 h-14 bg-black/40 border-white/10 text-white placeholder:text-white/30 focus:border-accent transition-all rounded-xl shadow-inner" />
+                        <Input
+                          required
+                          placeholder="Enter location"
+                          value={hireDetails.location}
+                          onChange={(e) => setHireDetails({ ...hireDetails, location: e.target.value })}
+                          className="pl-10 h-14 bg-black/40 border-white/10 text-white placeholder:text-white/30 focus:border-accent transition-all rounded-xl shadow-inner"
+                        />
                       </div>
                     </div>
                     <div className="space-y-1 text-left">
                       <label className="text-[10px] font-bold uppercase tracking-widest text-accent/90 ml-1">Pickup Date</label>
                       <div className="relative cursor-pointer" onClick={(e) => (e.currentTarget.querySelector('input') as HTMLInputElement)?.showPicker?.()}>
                         <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-accent pointer-events-none" />
-                        <Input required type="date" min={minDate} className="pl-10 h-14 bg-black/40 border-white/10 text-white focus:border-accent transition-all rounded-xl shadow-inner cursor-pointer" />
+                        <Input
+                          required
+                          type="date"
+                          min={minDate}
+                          value={hireDetails.pickupDate}
+                          onChange={(e) => setHireDetails({ ...hireDetails, pickupDate: e.target.value })}
+                          className="pl-10 h-14 bg-black/40 border-white/10 text-white focus:border-accent transition-all rounded-xl shadow-inner cursor-pointer"
+                        />
                       </div>
                     </div>
                     <div className="space-y-1 text-left">
                       <label className="text-[10px] font-bold uppercase tracking-widest text-accent/90 ml-1">Return Date</label>
                       <div className="relative cursor-pointer" onClick={(e) => (e.currentTarget.querySelector('input') as HTMLInputElement)?.showPicker?.()}>
                         <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-accent pointer-events-none" />
-                        <Input required type="date" min={minDate} className="pl-10 h-14 bg-black/40 border-white/10 text-white focus:border-accent transition-all rounded-xl shadow-inner cursor-pointer" />
+                        <Input
+                          required
+                          type="date"
+                          min={minDate}
+                          value={hireDetails.returnDate}
+                          onChange={(e) => setHireDetails({ ...hireDetails, returnDate: e.target.value })}
+                          className="pl-10 h-14 bg-black/40 border-white/10 text-white focus:border-accent transition-all rounded-xl shadow-inner cursor-pointer"
+                        />
                       </div>
                     </div>
                   </div>
@@ -224,6 +262,192 @@ Date: ${transferDetails.date || 'Not specified'}`;
                 </form>
               )}
             </div>
+
+            {/* Mobile Booking Tiles - Visible on Mobile Only */}
+            <div className="md:hidden flex flex-col gap-4 mt-12 w-full max-w-sm mx-auto">
+              <Sheet open={isMobileFormOpen} onOpenChange={setIsMobileFormOpen}>
+                <div className="grid grid-cols-2 gap-4">
+                  <button
+                    onClick={() => { setActiveService('hire'); setIsMobileFormOpen(true); }}
+                    className="flex flex-col items-center justify-center p-6 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 hover:bg-white/10 transition-all group"
+                  >
+                    <div className="w-12 h-12 rounded-xl gradient-accent flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                      <CarIcon className="w-6 h-6 text-accent-foreground" />
+                    </div>
+                    <span className="text-sm font-bold uppercase tracking-wider text-white">Hire Car</span>
+                  </button>
+
+                  <button
+                    onClick={() => { setActiveService('transfer'); setIsMobileFormOpen(true); }}
+                    className="flex flex-col items-center justify-center p-6 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 hover:bg-white/10 transition-all group"
+                  >
+                    <div className="w-12 h-12 rounded-xl gradient-accent flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                      <Plane className="w-6 h-6 text-accent-foreground" />
+                    </div>
+                    <span className="text-sm font-bold uppercase tracking-wider text-white">Transfers</span>
+                  </button>
+                </div>
+
+                <SheetContent side="bottom" className="h-auto max-h-[95vh] bg-transparent border-0 p-4 pb-10 shadow-none overflow-visible">
+                  {/* The Original Search Card Design */}
+                  <div className="bg-card/10 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-6 md:p-8 shadow-2xl space-y-6 relative overflow-hidden max-w-lg mx-auto">
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-accent opacity-60" />
+
+                    <div className="flex flex-col items-center gap-2 mb-2">
+                      <div className="w-12 h-1.5 bg-white/20 rounded-full mb-2" />
+                      <div className="flex items-center justify-between w-full">
+                        <div className="w-8" /> {/* Spacer to center title */}
+                        <h2 className="font-display text-2xl font-bold text-white text-center leading-tight">
+                          {activeService === 'hire' ? 'Hire a Premium Car' : 'Elite Airport Transfer'}
+                        </h2>
+                        <SheetClose className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-white/70 transition-colors">
+                          <X className="w-5 h-5" />
+                        </SheetClose>
+                      </div>
+                    </div>
+
+                    {/* Service Switcher Tabs - Exactly like desktop */}
+                    <div className="flex p-1 bg-black/20 rounded-xl max-w-sm mx-auto mb-4 border border-white/5">
+                      <button
+                        type="button"
+                        onClick={() => setActiveService('hire')}
+                        className={`flex-1 px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all ${activeService === 'hire'
+                          ? 'bg-accent text-accent-foreground shadow-lg'
+                          : 'text-white/60 hover:text-white hover:bg-white/5'
+                          }`}
+                      >
+                        Hire a Car
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveService('transfer')}
+                        className={`flex-1 px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all ${activeService === 'transfer'
+                          ? 'bg-accent text-accent-foreground shadow-lg'
+                          : 'text-white/60 hover:text-white hover:bg-white/5'
+                          }`}
+                      >
+                        Transfers
+                      </button>
+                    </div>
+
+                    <div className="max-h-[60vh] overflow-y-auto px-1 custom-scrollbar pb-4">
+                      {activeService === 'hire' ? (
+                        <form className="space-y-6">
+                          <div className="space-y-4">
+                            <div className="space-y-1 text-left">
+                              <label className="text-[10px] font-bold uppercase tracking-widest text-accent/90 ml-1">Location</label>
+                              <div className="relative">
+                                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-accent" />
+                                <Input
+                                  required
+                                  value={hireDetails.location}
+                                  onChange={(e) => setHireDetails({ ...hireDetails, location: e.target.value })}
+                                  placeholder="Enter location"
+                                  className="pl-10 h-14 bg-black/40 border-white/10 text-white placeholder:text-white/30 rounded-xl"
+                                />
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-1 text-left">
+                                <label className="text-[10px] font-bold uppercase tracking-widest text-accent/90 ml-1">Pickup Date</label>
+                                <div className="relative cursor-pointer" onClick={(e) => (e.currentTarget.querySelector('input') as HTMLInputElement)?.showPicker?.()}>
+                                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-accent pointer-events-none" />
+                                  <Input
+                                    required
+                                    type="date"
+                                    min={minDate}
+                                    value={hireDetails.pickupDate}
+                                    onChange={(e) => setHireDetails({ ...hireDetails, pickupDate: e.target.value })}
+                                    className="pl-10 h-14 bg-black/40 border-white/10 text-white cursor-pointer rounded-xl"
+                                  />
+                                </div>
+                              </div>
+                              <div className="space-y-1 text-left">
+                                <label className="text-[10px] font-bold uppercase tracking-widest text-accent/90 ml-1">Return Date</label>
+                                <div className="relative cursor-pointer" onClick={(e) => (e.currentTarget.querySelector('input') as HTMLInputElement)?.showPicker?.()}>
+                                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-accent pointer-events-none" />
+                                  <Input
+                                    required
+                                    type="date"
+                                    min={minDate}
+                                    value={hireDetails.returnDate}
+                                    onChange={(e) => setHireDetails({ ...hireDetails, returnDate: e.target.value })}
+                                    className="pl-10 h-14 bg-black/40 border-white/10 text-white cursor-pointer rounded-xl"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          <Button
+                            asChild
+                            size="lg"
+                            className="w-full gradient-accent h-14 text-lg font-bold shadow-accent rounded-xl"
+                          >
+                            <Link to="/cars">
+                              <Search className="w-5 h-5 mr-3" />
+                              Search Available Cars
+                            </Link>
+                          </Button>
+                        </form>
+                      ) : (
+                        <form onSubmit={handleTransferSubmit} className="space-y-6">
+                          <div className="space-y-4">
+                            <div className="space-y-1 text-left">
+                              <label className="text-[10px] font-bold uppercase tracking-widest text-accent/90 ml-1">Pickup Point</label>
+                              <div className="relative">
+                                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-accent" />
+                                <Input
+                                  required
+                                  placeholder="Airport or Hotel"
+                                  value={transferDetails.pickup}
+                                  onChange={(e) => setTransferDetails({ ...transferDetails, pickup: e.target.value })}
+                                  className="pl-10 h-14 bg-black/40 border-white/10 text-white placeholder:text-white/30 rounded-xl"
+                                />
+                              </div>
+                            </div>
+                            <div className="space-y-1 text-left">
+                              <label className="text-[10px] font-bold uppercase tracking-widest text-accent/90 ml-1">Destination</label>
+                              <div className="relative">
+                                <ArrowRight className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-accent" />
+                                <Input
+                                  required
+                                  placeholder="Hotel or Airport"
+                                  value={transferDetails.dropoff}
+                                  onChange={(e) => setTransferDetails({ ...transferDetails, dropoff: e.target.value })}
+                                  className="pl-10 h-14 bg-black/40 border-white/10 text-white placeholder:text-white/30 rounded-xl"
+                                />
+                              </div>
+                            </div>
+                            <div className="space-y-1 text-left">
+                              <label className="text-[10px] font-bold uppercase tracking-widest text-accent/90 ml-1">Date & Time</label>
+                              <div className="relative cursor-pointer" onClick={(e) => (e.currentTarget.querySelector('input') as HTMLInputElement)?.showPicker?.()}>
+                                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-accent pointer-events-none" />
+                                <Input
+                                  required
+                                  type="datetime-local"
+                                  min={minDateTime}
+                                  value={transferDetails.date}
+                                  onChange={(e) => setTransferDetails({ ...transferDetails, date: e.target.value })}
+                                  className="pl-10 h-14 bg-black/40 border-white/10 text-white cursor-pointer rounded-xl"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                          <Button
+                            type="submit"
+                            size="lg"
+                            className="w-full gradient-accent h-14 text-lg font-bold shadow-accent rounded-xl"
+                          >
+                            <Search className="w-5 h-5 mr-3" />
+                            Book Transfer via WhatsApp
+                          </Button>
+                        </form>
+                      )}
+                    </div>
+                  </div>
+                </SheetContent>
+              </Sheet>
+            </div>
           </motion.div>
         </div>
       </section>
@@ -256,10 +480,10 @@ Date: ${transferDetails.date || 'Not specified'}`;
             ))}
           </div>
         </div>
-      </section >
+      </section>
 
       {/* Categories */}
-      < section className="py-16" >
+      <section className="py-16">
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-end mb-8">
             <div>
@@ -290,10 +514,10 @@ Date: ${transferDetails.date || 'Not specified'}`;
             ))}
           </div>
         </div>
-      </section >
+      </section>
 
       {/* Featured Cars */}
-      < section className="py-16 bg-secondary/50 border-y border-border/50" >
+      <section className="py-16 bg-secondary/50 border-y border-border/50">
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-end mb-8">
             <div>
@@ -323,7 +547,7 @@ Date: ${transferDetails.date || 'Not specified'}`;
             </Button>
           </div>
         </div>
-      </section >
+      </section>
 
       {/* AI Recommendations */}
       {
@@ -417,6 +641,6 @@ Date: ${transferDetails.date || 'Not specified'}`;
           </motion.div>
         </div>
       </section>
-    </Layout >
+    </Layout>
   );
 }
