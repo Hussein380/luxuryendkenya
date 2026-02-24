@@ -1,7 +1,7 @@
 const Booking = require('../models/Booking');
 const { sendSuccess, sendError } = require('../utils/response');
 const PDFDocument = require('pdfkit');
-const LOGO_URL = process.env.LOGO_URL || 'https://soltravel.com/logo.png';
+const LOGO_URL = process.env.LOGO_URL || 'https://luxuryendkenya.com/logo.png';
 
 /**
  * @desc    Get revenue data for date range
@@ -98,8 +98,8 @@ function calculateRevenueMetrics(bookings) {
         totalBookings: bookings.length,
         cancelledBookings: bookings.filter(b => b.status === 'cancelled').length,
         completedBookings: bookings.filter(b => b.status === 'completed').length,
-        collectionRate: expectedRevenue > 0 
-            ? ((collectedRevenue / expectedRevenue) * 100).toFixed(1) 
+        collectionRate: expectedRevenue > 0
+            ? ((collectedRevenue / expectedRevenue) * 100).toFixed(1)
             : 0
     };
 }
@@ -256,12 +256,12 @@ exports.exportRevenueCSV = async (req, res) => {
         ].map(escapeCsv).join(',');
 
         const rows = bookings.map(b => {
-            const amountPaid = ['paid', 'completed'].includes(b.status) 
-                ? b.totalPrice 
+            const amountPaid = ['paid', 'completed'].includes(b.status)
+                ? b.totalPrice
                 : (b.penaltyFee?.status === 'paid' ? b.penaltyFee.amount : 0);
-            
+
             const balance = b.totalPrice - amountPaid;
-            
+
             return [
                 formatDate(b.createdAt),
                 escapeCsv(b.bookingId),
@@ -307,30 +307,30 @@ exports.exportRevenuePDF = async (req, res) => {
 
         // Create PDF
         const doc = new PDFDocument({ margin: 50 });
-        
+
         // Set response headers
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename=revenue-report-${startDate || 'all'}-to-${endDate || 'all'}.pdf`);
-        
+
         // Pipe PDF to response
         doc.pipe(res);
 
         // Helper function to add header on each page
         const addHeader = (pageNum, totalPages) => {
             // Logo placeholder (text-based since we can't easily fetch images)
-            doc.fontSize(20).font('Helvetica-Bold').fillColor('#1e3a5f').text('🚗 SOL TRAVEL GROUP', 50, 40);
+            doc.fontSize(20).font('Helvetica-Bold').fillColor('#1e3a5f').text('🚗 luxuryend', 50, 40);
             doc.fontSize(12).font('Helvetica').fillColor('#666666').text('Premium Car Rentals in Kenya', 50, 65);
-            
+
             // Report title
             doc.fontSize(18).font('Helvetica-Bold').fillColor('#333333').text('Revenue Report', 50, 95);
-            
+
             // Date range
-            const dateRangeText = startDate && endDate 
+            const dateRangeText = startDate && endDate
                 ? `${new Date(startDate).toLocaleDateString('en-KE')} - ${new Date(endDate).toLocaleDateString('en-KE')}`
                 : 'All Time';
             doc.fontSize(10).font('Helvetica').fillColor('#666666').text(`Period: ${dateRangeText}`, 50, 120);
             doc.text(`Generated: ${new Date().toLocaleString('en-KE')}   |   Page ${pageNum} of ${totalPages}`, 50, 135);
-            
+
             // Line separator
             doc.moveTo(50, 155).lineTo(550, 155).stroke('#1e3a5f');
         };
@@ -345,7 +345,7 @@ exports.exportRevenuePDF = async (req, res) => {
 
         // Summary Section - 6 Key Metrics in 2x3 Grid Layout
         doc.fontSize(16).font('Helvetica-Bold').fillColor('#333333').text('Financial Summary', 50, 175);
-        
+
         const summaryMetrics = [
             { label: 'Expected Revenue', sublabel: '(Projected)', value: `KES ${metrics.expectedRevenue.toLocaleString()}`, color: '#2563eb' },
             { label: 'Collected Revenue', sublabel: '(Actual)', value: `KES ${metrics.collectedRevenue.toLocaleString()}`, color: '#16a34a' },
@@ -358,20 +358,20 @@ exports.exportRevenuePDF = async (req, res) => {
         let y = 210;
         const boxWidth = 240;
         const boxHeight = 70;
-        
+
         summaryMetrics.forEach((metric, index) => {
             const col = index % 2;
             const row = Math.floor(index / 2);
             const x = 50 + (col * (boxWidth + 20));
             const boxY = y + (row * (boxHeight + 15));
-            
+
             // Draw box
             doc.rect(x, boxY, boxWidth, boxHeight).stroke('#e5e7eb').fill('#f9fafb');
-            
+
             // Label
             doc.fontSize(10).font('Helvetica').fillColor('#6b7280').text(metric.label, x + 10, boxY + 10);
             doc.fontSize(8).fillColor('#9ca3af').text(metric.sublabel, x + 10, boxY + 24);
-            
+
             // Value
             doc.fontSize(16).font('Helvetica-Bold').fillColor(metric.color).text(metric.value, x + 10, boxY + 40);
         });
@@ -412,7 +412,7 @@ exports.exportRevenuePDF = async (req, res) => {
 
             // Table rows
             doc.font('Helvetica').fontSize(8).fillColor('#4b5563');
-            
+
             bookings.forEach((booking, index) => {
                 // Add new page if needed
                 if (y > 700) {
@@ -420,7 +420,7 @@ exports.exportRevenuePDF = async (req, res) => {
                     currentPage++;
                     addHeader(currentPage, totalPages);
                     y = 175;
-                    
+
                     // Redraw table headers on new page
                     x = 50;
                     doc.fontSize(9).font('Helvetica-Bold').fillColor('#374151');
@@ -444,7 +444,7 @@ exports.exportRevenuePDF = async (req, res) => {
                     cancelled: '#dc2626',
                     overdue: '#dc2626'
                 };
-                
+
                 const rowData = [
                     new Date(booking.createdAt).toLocaleDateString('en-KE'),
                     booking.bookingId,
@@ -469,7 +469,7 @@ exports.exportRevenuePDF = async (req, res) => {
 
         // Footer on last page
         doc.fontSize(8).font('Helvetica').fillColor('#9ca3af').text(
-            '© Sol Travel Group - Confidential Report - Internal Use Only',
+            '© luxuryend - Confidential Report - Internal Use Only',
             50,
             doc.page.height - 50,
             { align: 'center', width: 500 }

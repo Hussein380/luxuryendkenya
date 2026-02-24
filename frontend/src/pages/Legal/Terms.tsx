@@ -53,7 +53,7 @@ export default function Terms() {
                     >
                         <ShieldCheck className="w-16 h-16 text-accent mx-auto mb-4" />
                         <h1 className="text-4xl md:text-5xl font-display font-bold mb-4">Terms & Conditions</h1>
-                        <p className="text-muted-foreground text-lg">Please read these rules carefully before renting from Sol Travel Group.</p>
+                        <p className="text-muted-foreground text-lg">Please read these rules carefully before renting from luxuryend.</p>
                     </motion.div>
 
                     <div className="grid gap-6">

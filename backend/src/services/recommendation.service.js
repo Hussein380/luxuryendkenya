@@ -162,12 +162,12 @@ function shuffleArray(array) {
 
 /** Contact and company info for AI context (single source of truth) */
 const CONTACT_CONTEXT = {
-    companyName: 'Sol Travel Group',
+    companyName: 'luxuryend',
     location: 'Nairobi, Kenya',
-    phone: '+254 722 235 748',
-    phoneRaw: '254722235748',
-    email: 'soltravelgroupltd@gmail.com',
-    whatsappLink: 'https://wa.me/254722235748',
+    phone: '0725675022',
+    phoneRaw: '0725675022',
+    email: 'luxuryendkenya@gmail.com',
+    whatsappLink: 'https://wa.me/254725675022',
 };
 
 /**
@@ -346,7 +346,7 @@ exports.getAIChatResponse = async (userMessage, history = []) => {
     ];
 
     const systemInstruction = `
-    Identity: You are the Sol Travel AI Assistant, a friendly car rental expert.
+    Identity: You are the luxuryend AI Assistant, a friendly car rental expert.
     
     CAPABILITY: You have access to a tool 'check_availability' that effectively checks the REAL database.
     - IF the user asks "Is X available on date Y?", you MUST call this tool.
@@ -431,7 +431,7 @@ exports.getAIGreeting = async () => {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const models = ['models/gemini-2.0-flash', 'models/gemini-1.5-flash', 'models/gemini-1.5-pro', 'models/gemma-3-1b-it'];
 
-    const greetingPrompt = `You are the Sol Travel car rental assistant. The user has just opened the chat. Reply with exactly one short, friendly greeting sentence (e.g. ask how you can help). No markdown, no lists, no extra text. One sentence only.`;
+    const greetingPrompt = `You are the luxuryend car rental assistant. The user has just opened the chat. Reply with exactly one short, friendly greeting sentence (e.g. ask how you can help). No markdown, no lists, no extra text. One sentence only.`;
 
     let lastError = null;
     for (const modelName of models) {

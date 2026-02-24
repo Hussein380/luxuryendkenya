@@ -20,12 +20,12 @@ export function Header() {
   const navLinks = isAdmin ? adminNavLinks : clientNavLinks;
 
   return (
-    <header className="sticky top-0 z-50 bg-[#020817] border-b border-white/5 backdrop-blur-md">
+    <header className="sticky top-0 z-50 bg-[#0a0a0a] border-b border-white/5 backdrop-blur-md">
       <nav className="container mx-auto px-4 h-20 flex items-center justify-between">
         {/* Logo */}
         <Link to={isAdmin ? "/admin" : "/"} className="flex items-center gap-3">
-          <img src="/logo.png" alt="Sol Travel Group" className="h-16 w-auto" />
-          <span className="hidden sm:block font-display font-bold text-xl text-white">Sol Travel Group</span>
+          <img src="/logo.png" alt="luxuryend" className="h-16 w-auto" />
+          <span className="hidden sm:block font-display font-bold text-xl text-white">luxuryend</span>
         </Link>
 
         {/* Desktop Navigation */}
@@ -88,7 +88,7 @@ export function Header() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden bg-[#020817] border-t border-white/5 shadow-2xl"
+            className="md:hidden bg-[#0a0a0a] border-t border-white/5 shadow-2xl"
           >
             <div className="container mx-auto px-4 py-4 space-y-3">
               {navLinks.map((link) => (

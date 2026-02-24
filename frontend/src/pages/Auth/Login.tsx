@@ -84,7 +84,7 @@ export default function Login() {
                     <Car className="w-9 h-9 text-accent-foreground" />
                 </motion.div>
                 <h2 className="text-center text-3xl font-display font-bold text-primary-foreground">
-                    Welcome to Sol Travel
+                    Welcome to luxuryend
                 </h2>
                 <p className="mt-2 text-center text-sm text-primary-foreground/70">
                     Sign in to your account to continue
@@ -173,7 +173,7 @@ export default function Login() {
                                 <div className="w-full border-t border-border/50"></div>
                             </div>
                             <div className="relative flex justify-center text-sm">
-                                <span className="px-2 bg-transparent text-muted-foreground">New to Sol Travel?</span>
+                                <span className="px-2 bg-transparent text-muted-foreground">New to luxuryend?</span>
                             </div>
                         </div>
 

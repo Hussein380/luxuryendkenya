@@ -9,8 +9,8 @@ export function Footer() {
           {/* Brand */}
           <div className="space-y-4">
             <Link to="/" className="flex items-center gap-2 font-display font-bold text-xl">
-              <img src="/logo.png" alt="Sol Travel Group" className="h-10 w-auto" />
-              <span>Sol Travel Group</span>
+              <img src="/logo.png" alt="luxuryend" className="h-10 w-auto" />
+              <span>luxuryend</span>
             </Link>
             <p className="text-sm text-primary-foreground/70">
               Premium car rental experience with the best vehicles and exceptional service.
@@ -63,18 +63,18 @@ export function Footer() {
               </li>
               <li className="flex items-center gap-2 text-primary-foreground/70">
                 <Phone className="w-4 h-4" />
-                <a href="tel:+254722235748" className="hover:text-primary-foreground transition-colors">+254 722 235 748</a>
+                <a href="tel:0725675022" className="hover:text-primary-foreground transition-colors">0725675022</a>
               </li>
               <li className="flex items-center gap-2 text-primary-foreground/70">
                 <Mail className="w-4 h-4" />
-                <a href="mailto:soltravelgroupltd@gmail.com" className="hover:text-primary-foreground transition-colors">soltravelgroupltd@gmail.com</a>
+                <a href="mailto:luxuryendkenya@gmail.com" className="hover:text-primary-foreground transition-colors">luxuryendkenya@gmail.com</a>
               </li>
             </ul>
           </div>
         </div>
 
         <div className="mt-12 pt-6 border-t border-primary-foreground/10 text-center text-sm text-primary-foreground/50">
-          © {new Date().getFullYear()} Sol Travel Group. All rights reserved.
+          © {new Date().getFullYear()} luxuryend. All rights reserved.
         </div>
       </div>
     </footer>

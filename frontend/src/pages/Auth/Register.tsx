@@ -46,7 +46,7 @@ export default function Register() {
             const result = await register(name, email, password);
             if (result.success) {
                 toast({
-                    title: "Welcome to Sol Travel!",
+                    title: "Welcome to luxuryend!",
                     description: "Your account has been created successfully.",
                 });
                 navigate('/', { replace: true });
@@ -95,7 +95,7 @@ export default function Register() {
                     Create Your Account
                 </h2>
                 <p className="mt-2 text-center text-sm text-primary-foreground/70">
-                    Join Sol Travel to track your bookings and get personalized recommendations
+                    Join luxuryend to track your bookings and get personalized recommendations
                 </p>
             </div>
 

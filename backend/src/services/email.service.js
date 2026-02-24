@@ -6,11 +6,11 @@ const { Resend } = require('resend');
 const logger = require('../utils/logger');
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const CONTACT_PHONE = '+254 722 235 748';
-const CONTACT_EMAIL = 'soltravelgroupltd@gmail.com';
+const CONTACT_PHONE = '0725675022';
+const CONTACT_EMAIL = 'luxuryendkenya@gmail.com';
 
-const ADMIN_DASHBOARD_URL = process.env.ADMIN_DASHBOARD_URL || 'https://soltravel.com/admin';
-const LOGO_URL = process.env.LOGO_URL || 'https://soltravel.com/logo.png';
+const ADMIN_DASHBOARD_URL = process.env.ADMIN_DASHBOARD_URL || 'https://luxuryendkenya.com/admin';
+const LOGO_URL = process.env.LOGO_URL || 'https://luxuryendkenya.com/logo.png';
 
 const baseTemplate = (content, title) => `
 <!DOCTYPE html>
@@ -28,7 +28,7 @@ const baseTemplate = (content, title) => `
                     <!-- Header with Logo -->
                     <tr>
                         <td style="background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%); padding: 30px; text-align: center;">
-                            <img src="${LOGO_URL}" alt="Sol Travel Group" style="max-width: 200px; height: auto; margin-bottom: 10px;">
+                            <img src="${LOGO_URL}" alt="luxuryend" style="max-width: 200px; height: auto; margin-bottom: 10px;">
                             <p style="color: #a8c5e8; margin: 8px 0 0 0; font-size: 14px;">Premium Car Rentals in Kenya</p>
                         </td>
                     </tr>
@@ -42,7 +42,7 @@ const baseTemplate = (content, title) => `
                     <tr>
                         <td style="background-color: #f8f9fa; padding: 30px; text-align: center; border-top: 1px solid #e9ecef;">
                             <p style="color: #6c757d; margin: 0 0 10px 0; font-size: 14px;">
-                                <strong>Sol Travel Group</strong><br>
+                                <strong>luxuryend</strong><br>
                                 Eastleigh 12nd St, Sec 2, Nairobi
                             </p>
                             <p style="color: #6c757d; margin: 0; font-size: 13px;">
@@ -63,11 +63,11 @@ const baseTemplate = (content, title) => `
 
 const emailTemplates = {
     welcome: (data) => ({
-        subject: 'Welcome to Sol Travel Group!',
+        subject: 'Welcome to luxuryend!',
         html: baseTemplate(`
             <h2 style="color: #1e3a5f; margin: 0 0 20px 0; font-size: 24px;">Welcome, ${data.name}! 👋</h2>
             <p style="color: #495057; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
-                Thank you for joining <strong>Sol Travel Group</strong>. We're excited to have you on board!
+                Thank you for joining <strong>luxuryend</strong>. We're excited to have you on board!
             </p>
             <p style="color: #495057; font-size: 16px; line-height: 1.6; margin: 0 0 30px 0;">
                 Start exploring our premium car collection and find your perfect ride for your next adventure in Kenya.
@@ -78,7 +78,7 @@ const emailTemplates = {
             <p style="color: #6c757d; font-size: 14px; margin: 30px 0 0 0;">
                 Questions? Contact us at <a href="tel:${CONTACT_PHONE}" style="color: #2d5a87; text-decoration: none;">${CONTACT_PHONE}</a> or <a href="mailto:${CONTACT_EMAIL}" style="color: #2d5a87; text-decoration: none;">${CONTACT_EMAIL}</a>
             </p>
-        `, 'Welcome to Sol Travel Group'),
+        `, 'Welcome to luxuryend'),
     }),
     'booking-received': (data) => ({
         subject: `✅ We've Received Your Booking #${data.bookingId}`,
@@ -175,7 +175,7 @@ const emailTemplates = {
                 <p style="margin: 10px 0; color: #495057; font-size: 15px;"><strong>Payment Date:</strong> ${new Date(data.paidAt).toLocaleString('en-KE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
             </div>
             <p style="color: #6c757d; font-size: 14px; margin: 25px 0 0 0; text-align: center;">
-                Keep this receipt for your records. Thank you for choosing Sol Travel Group!
+                Keep this receipt for your records. Thank you for choosing luxuryend!
             </p>
         `, 'Payment Receipt'),
     }),
@@ -304,7 +304,7 @@ const sendEmailDirectly = async (type, data) => {
     try {
         const emailContent = template(data);
         const { data: resendData, error } = await resend.emails.send({
-            from: 'Sol Travel Group <onboarding@resend.dev>',
+            from: 'luxuryend <onboarding@resend.dev>',
             to: recipient,
             subject: emailContent.subject,
             html: emailContent.html,

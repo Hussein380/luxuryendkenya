@@ -26,7 +26,7 @@ const emailWorker = new Worker(
 
         try {
             const { data: resendData, error } = await resend.emails.send({
-                from: 'Sol Travel Group <onboarding@resend.dev>', // Use your verified domain later
+                from: 'luxuryend <onboarding@resend.dev>', // Use your verified domain later
                 to: recipient,
                 subject: emailContent.subject,
                 html: emailContent.html,
