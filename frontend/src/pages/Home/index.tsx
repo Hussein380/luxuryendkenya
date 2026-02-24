@@ -39,147 +39,81 @@ export default function Home() {
   return (
     <Layout>
       {/* Hero Section */}
-      <section className="relative min-h-[600px] lg:min-h-[700px] gradient-hero text-primary-foreground overflow-hidden">
-        {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-10">
-          <div
-            className="absolute inset-0"
-            style={{
-              backgroundImage: `radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)`,
-              backgroundSize: '40px 40px',
-            }}
+      <section className="relative min-h-[650px] lg:min-h-[850px] flex items-center justify-center text-primary-foreground overflow-hidden">
+        {/* Background Image with Overlay */}
+        <div className="absolute inset-0 z-0">
+          <LazyImage
+            src="https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=1920&q=80"
+            alt="Luxury Hero Background"
+            className="w-full h-full object-cover"
+            wrapperClassName="h-full w-full"
           />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/85 via-black/40 to-black/95" />
         </div>
 
-        <div className="container mx-auto px-4 py-8 md:py-16 lg:py-24 relative z-10">
-          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-            {/* Hero Image - Mobile First (above content) */}
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="relative lg:hidden order-1 mb-6"
-            >
-              <div className="relative">
-                <div className="absolute -inset-2 bg-accent/20 rounded-2xl blur-2xl" />
-                <LazyImage
-                  src="https://images.unsplash.com/photo-1617469767053-d3b523a0b982?w=800&auto=format&fit=crop"
-                  alt="Luxury car"
-                  className="relative rounded-xl shadow-xl w-full object-cover"
-                  wrapperClassName="aspect-[16/10]"
-                />
-              </div>
+        <div className="container mx-auto px-4 relative z-10 py-20">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            className="max-w-4xl mx-auto text-center space-y-8"
+          >
+            <div className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-accent/20 border border-accent/30 text-accent font-medium backdrop-blur-sm mx-auto">
+              <Sparkles className="w-4 h-4" />
+              Premium Car Rental & Airport Transfers
+            </div>
 
-              {/* Stats Card - Mobile */}
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.3 }}
-                className="absolute -bottom-4 -right-4 bg-card text-card-foreground rounded-lg p-3 shadow-lg"
+            <h1 className="font-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight drop-shadow-2xl">
+              Arrive in <span className="text-gradient">Style</span>, every time.
+            </h1>
+
+            <p className="text-lg sm:text-xl text-primary-foreground/90 max-w-2xl mx-auto drop-shadow-md">
+              From luxury fleet rentals to elite airport pickups, we provide the ultimate premium travel experience in Kenya.
+            </p>
+
+            {/* Search Form - Premium Glassmorphism */}
+            <div className="bg-card/10 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 md:p-8 shadow-2xl space-y-6 max-w-3xl mx-auto mt-12 overflow-hidden relative">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-accent opacity-60" />
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="space-y-1 text-left">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-accent/90 ml-1">Location</label>
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-accent" />
+                    <Input placeholder="Enter location" className="pl-10 h-14 bg-black/40 border-white/10 text-white placeholder:text-white/30 focus:border-accent transition-all rounded-xl shadow-inner" />
+                  </div>
+                </div>
+                <div className="space-y-1 text-left">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-accent/90 ml-1">Pickup Date</label>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-accent" />
+                    <Input type="date" className="pl-10 h-14 bg-black/40 border-white/10 text-white focus:border-accent transition-all rounded-xl shadow-inner color-scheme-dark" />
+                  </div>
+                </div>
+                <div className="space-y-1 text-left">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-accent/90 ml-1">Return Date</label>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-accent" />
+                    <Input type="date" className="pl-10 h-14 bg-black/40 border-white/10 text-white focus:border-accent transition-all rounded-xl shadow-inner color-scheme-dark" />
+                  </div>
+                </div>
+              </div>
+              <Button
+                asChild
+                size="lg"
+                className="w-full gradient-accent text-accent-foreground border-0 shadow-accent h-14 text-lg font-bold transition-transform hover:scale-[1.01] active:scale-[0.99]"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full gradient-accent flex items-center justify-center">
-                    <Star className="w-5 h-5 text-accent-foreground" />
-                  </div>
-                  <div>
-                    <p className="font-display font-bold text-xl">4.9</p>
-                    <p className="text-xs text-muted-foreground">Rating</p>
-                  </div>
-                </div>
-              </motion.div>
-            </motion.div>
-
-            {/* Content */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-              className="space-y-6 order-2 lg:order-1"
-            >
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent/20 text-sm font-medium">
-                <Sparkles className="w-4 h-4" />
-                Premium Car Rental Experience
-              </div>
-
-              <h1 className="font-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
-                Drive Your Dreams,{' '}
-                <span className="text-gradient">Any Day</span>
-              </h1>
-
-              <p className="text-base sm:text-lg text-primary-foreground/80 max-w-lg">
-                Explore our premium fleet of vehicles. From eco-friendly electrics to luxury sports cars, find your perfect ride.
-              </p>
-
-              {/* Search Form */}
-              <div className="bg-card text-card-foreground rounded-2xl p-4 shadow-xl space-y-4 max-w-xl">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <Input placeholder="Location" className="pl-10 h-12" />
-                  </div>
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <Input type="date" className="pl-10 h-12" />
-                  </div>
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <Input type="date" className="pl-10 h-12" />
-                  </div>
-                </div>
-                <Button
-                  asChild
-                  size="lg"
-                  className="w-full gradient-accent text-accent-foreground border-0 shadow-accent h-12"
-                >
-                  <Link to="/cars">
-                    <Search className="w-5 h-5 mr-2" />
-                    Search Available Cars
-                  </Link>
-                </Button>
-              </div>
-            </motion.div>
-
-            {/* Hero Image - Desktop (side by side) */}
-            <motion.div
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="relative hidden lg:block order-2"
-            >
-              <div className="relative">
-                <div className="absolute -inset-4 bg-accent/20 rounded-3xl blur-3xl" />
-                <LazyImage
-                  src="https://images.unsplash.com/photo-1617469767053-d3b523a0b982?w=800&auto=format&fit=crop"
-                  alt="Luxury car"
-                  className="relative rounded-2xl shadow-2xl w-full object-cover"
-                  wrapperClassName="aspect-[4/3]"
-                />
-              </div>
-
-              {/* Stats Card - Desktop */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
-                className="absolute -bottom-8 -left-8 bg-card text-card-foreground rounded-xl p-4 shadow-xl"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full gradient-accent flex items-center justify-center">
-                    <Star className="w-6 h-6 text-accent-foreground" />
-                  </div>
-                  <div>
-                    <p className="font-display font-bold text-2xl">4.9</p>
-                    <p className="text-sm text-muted-foreground">Customer Rating</p>
-                  </div>
-                </div>
-              </motion.div>
-            </motion.div>
-          </div>
+                <Link to="/cars">
+                  <Search className="w-5 h-5 mr-3" />
+                  Search Available Cars
+                </Link>
+              </Button>
+            </div>
+          </motion.div>
         </div>
       </section>
 
       {/* Features */}
-      <section className="py-16 bg-secondary/50">
+      <section className="py-16 bg-secondary/50 border-y border-border/50">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
@@ -193,7 +127,7 @@ export default function Home() {
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.1 }}
                 viewport={{ once: true }}
-                className="flex items-center gap-4 p-4 rounded-xl bg-card"
+                className="flex items-center gap-4 p-4 rounded-xl bg-card border border-border/50 shadow-sm"
               >
                 <div className="w-12 h-12 rounded-lg gradient-accent flex items-center justify-center flex-shrink-0">
                   <feature.icon className="w-6 h-6 text-accent-foreground" />
@@ -243,7 +177,7 @@ export default function Home() {
       </section>
 
       {/* Featured Cars */}
-      <section className="py-16 bg-secondary/50">
+      <section className="py-16 bg-secondary/50 border-y border-border/50">
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-end mb-8">
             <div>
@@ -338,28 +272,28 @@ export default function Home() {
       )}
 
       {/* CTA */}
-      <section className="py-20 gradient-hero text-primary-foreground">
+      <section className="py-24 bg-[#0a0a0a] border-t border-accent/10">
         <div className="container mx-auto px-4 text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="max-w-2xl mx-auto space-y-6"
+            className="max-w-3xl mx-auto space-y-8"
           >
-            <h2 className="font-display text-3xl md:text-4xl font-bold">
-              Ready to Hit the Road?
+            <h2 className="font-display text-4xl md:text-5xl font-bold text-white drop-shadow-lg">
+              Ready to experience <span className="text-accent underline decoration-accent/30 underline-offset-8">Ultimate Luxury?</span>
             </h2>
-            <p className="text-primary-foreground/80">
-              Book your dream car today and experience the freedom of the open road.
+            <p className="text-lg text-white/70 max-w-xl mx-auto">
+              Book your dream car or elite airport transfer today. Experience Kenya behind the wheel of excellence.
             </p>
             <Button
               asChild
               size="lg"
-              className="gradient-accent text-accent-foreground border-0 shadow-accent"
+              className="gradient-accent text-accent-foreground border-0 shadow-accent h-16 px-10 text-xl font-bold transition-all hover:scale-105"
             >
               <Link to="/cars">
-                Browse All Cars
-                <ArrowRight className="w-5 h-5 ml-2" />
+                Browse Full Fleet
+                <ArrowRight className="w-6 h-6 ml-3" />
               </Link>
             </Button>
           </motion.div>
