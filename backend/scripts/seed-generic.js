@@ -1,8 +1,8 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
-const Car = require('./src/models/Car');
-const Location = require('./src/models/Location');
-const Category = require('./src/models/Category');
+const Car = require('../src/models/Car');
+const Location = require('../src/models/Location');
+const Category = require('../src/models/Category');
 
 const categories = [
     { slug: 'economy', name: 'Economy', icon: '🚗', sortOrder: 1 },
@@ -101,10 +101,10 @@ const seedData = async () => {
 
         await Category.create(categories);
         console.log('✅ Categories seeded');
-        
+
         await Location.create(locations);
         console.log('✅ Locations seeded');
-        
+
         await Car.create(cars);
         console.log('✅ Cars seeded');
 

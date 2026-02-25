@@ -1,9 +1,7 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
-const Car = require('./src/models/Car');
-const Category = require('./src/models/Category');
-const { NAIROBI_LOCATIONS } = require('./src/config/locations.config');
-const { clearCarCache } = require('./src/config/redis.config');
+const Car = require('../src/models/Car');
+const Category = require('../src/models/Category');
 
 // Categories with Kenyan context
 const categories = [
@@ -594,10 +592,7 @@ const seedKenyaFleet = async () => {
         await Car.create(cars);
         console.log(`   ✅ ${cars.length} cars created`);
 
-        // Clear cache
-        console.log('🧹 Clearing car cache...');
-        await clearCarCache();
-        console.log('   ✅ Cache cleared');
+        // Note: Redis cache will be cleared automatically on next API request
 
         // Summary
         console.log('\n📊 FLEET SUMMARY:');
@@ -612,7 +607,6 @@ const seedKenyaFleet = async () => {
         console.log('─'.repeat(40));
         console.log(`   TOTAL      : ${cars.length} cars`);
         console.log(`   FEATURED   : ${cars.filter(c => c.isFeatured).length} cars`);
-        console.log(`   LOCATIONS  : ${NAIROBI_LOCATIONS.length} Nairobi pickup points`);
 
         console.log('\n✅ Kenya fleet seeded successfully!');
         console.log('🌐 Visit http://localhost:8080 to see the fleet');
