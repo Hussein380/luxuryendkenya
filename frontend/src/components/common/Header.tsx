@@ -23,9 +23,9 @@ export function Header() {
     <header className="sticky top-0 z-50 bg-[#0a0a0a] border-b border-white/5 backdrop-blur-md">
       <nav className="container mx-auto px-4 h-20 flex items-center justify-between">
         {/* Logo */}
-        <Link to={isAdmin ? "/admin" : "/"} className="flex items-center gap-3">
-          <img src="/logo.png" alt="luxuryend" className="h-16 w-auto" />
-          <span className="hidden sm:block font-display font-bold text-xl text-white">luxuryend</span>
+        <Link to={isAdmin ? "/admin" : "/"} className="flex items-center gap-2 sm:gap-3">
+          <img src="/logo.png" alt="luxuryend" className="h-12 sm:h-16 w-auto object-contain" />
+          <span className="font-display font-bold text-lg sm:text-xl text-white">luxuryend</span>
         </Link>
 
         {/* Desktop Navigation */}

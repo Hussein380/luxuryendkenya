@@ -7,6 +7,7 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
+  SheetDescription,
   SheetTrigger,
   SheetClose,
 } from "@/components/ui/sheet";
@@ -49,6 +50,12 @@ export default function Home() {
         setFeaturedCars(cars);
         setCategories(cats);
         setRecommendations(recs);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        // Fallback to empty states if API fails (e.g. 429 error)
+        if (recommendations.length === 0) {
+          setRecommendations([]);
+        }
       } finally {
         setIsLoading(false);
       }
@@ -290,16 +297,19 @@ Date: ${transferDetails.date || 'Not specified'}`;
 
                 <SheetContent side="bottom" className="h-auto max-h-[95vh] bg-transparent border-0 p-4 pb-10 shadow-none overflow-visible">
                   {/* The Original Search Card Design */}
-                  <div className="bg-card/10 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-6 md:p-8 shadow-2xl space-y-6 relative overflow-hidden max-w-lg mx-auto">
+                  <div className="bg-card/10 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-4 sm:p-6 md:p-8 shadow-2xl space-y-6 relative overflow-hidden max-w-lg mx-auto">
                     <div className="absolute top-0 left-0 w-full h-1 bg-gradient-accent opacity-60" />
 
                     <div className="flex flex-col items-center gap-2 mb-2">
                       <div className="w-12 h-1.5 bg-white/20 rounded-full mb-2" />
                       <div className="flex items-center justify-between w-full">
                         <div className="w-8" /> {/* Spacer to center title */}
-                        <h2 className="font-display text-2xl font-bold text-white text-center leading-tight">
+                        <SheetTitle className="font-display text-2xl font-bold text-white text-center leading-tight">
                           {activeService === 'hire' ? 'Hire a Premium Car' : 'Elite Airport Transfer'}
-                        </h2>
+                        </SheetTitle>
+                        <SheetDescription className="sr-only">
+                          Select your destination and preferred dates for your premium travel experience in Kenya.
+                        </SheetDescription>
                         <SheetClose className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-white/70 transition-colors">
                           <X className="w-5 h-5" />
                         </SheetClose>
@@ -381,7 +391,7 @@ Date: ${transferDetails.date || 'Not specified'}`;
                           <Button
                             asChild
                             size="lg"
-                            className="w-full gradient-accent h-14 text-lg font-bold shadow-accent rounded-xl"
+                            className="w-full gradient-accent h-14 text-base sm:text-lg font-bold shadow-accent rounded-xl"
                           >
                             <Link to="/cars">
                               <Search className="w-5 h-5 mr-3" />
@@ -436,9 +446,9 @@ Date: ${transferDetails.date || 'Not specified'}`;
                           <Button
                             type="submit"
                             size="lg"
-                            className="w-full gradient-accent h-14 text-lg font-bold shadow-accent rounded-xl"
+                            className="w-full gradient-accent h-14 text-base sm:text-lg font-bold shadow-accent rounded-xl whitespace-normal"
                           >
-                            <Search className="w-5 h-5 mr-3" />
+                            <Search className="w-5 h-5 mr-2" />
                             Book Transfer via WhatsApp
                           </Button>
                         </form>
