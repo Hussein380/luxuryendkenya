@@ -20,6 +20,8 @@ import { LazyImage } from '@/components/common/LazyImage';
 import { getFeaturedCars, getCategories } from '@/services/carService';
 import { getRecommendations } from '@/services/recommendationService';
 import type { Car } from '@/types';
+import { DateTimePicker } from '@/components/ui/DateTimePicker';
+import { cn } from '@/lib/utils';
 
 export default function Home() {
   const [featuredCars, setFeaturedCars] = useState<Car[]>([]);
@@ -29,8 +31,8 @@ export default function Home() {
   const [activeService, setActiveService] = useState<'hire' | 'transfer'>('hire');
   const [hireDetails, setHireDetails] = useState({
     location: '',
-    pickupDate: new Date().toISOString().split('T')[0],
-    returnDate: new Date(Date.now() + 86400000).toISOString().split('T')[0]
+    pickupDate: new Date().toISOString(),
+    returnDate: new Date(Date.now() + 86400000).toISOString()
   });
   const [transferDetails, setTransferDetails] = useState({
     pickup: '',
@@ -71,28 +73,6 @@ Drop-off: ${transferDetails.dropoff || 'Not specified'}
 Date: ${transferDetails.date || 'Not specified'}`;
     window.open(`https://wa.me/254725675022?text=${encodeURIComponent(message)}`, '_blank');
   };
-
-  const [minDateTime, setMinDateTime] = useState('');
-  const [minDate, setMinDate] = useState('');
-
-  useEffect(() => {
-    const updateMinTimes = () => {
-      const now = new Date();
-      now.setMinutes(now.getMinutes() - 5); // 5 minute grace period for clock drift
-      const year = now.getFullYear();
-      const month = String(now.getMonth() + 1).padStart(2, '0');
-      const day = String(now.getDate()).padStart(2, '0');
-      const hours = String(now.getHours()).padStart(2, '0');
-      const minutes = String(now.getMinutes()).padStart(2, '0');
-
-      setMinDate(`${year}-${month}-${day}`);
-      setMinDateTime(`${year}-${month}-${day}T${hours}:${minutes}`);
-    };
-
-    updateMinTimes();
-    const timer = setInterval(updateMinTimes, 60000);
-    return () => clearInterval(timer);
-  }, []);
 
   return (
     <Layout>
@@ -176,31 +156,19 @@ Date: ${transferDetails.date || 'Not specified'}`;
                     </div>
                     <div className="space-y-1 text-left">
                       <label className="text-[10px] font-bold uppercase tracking-widest text-accent/90 ml-1">Pickup Date</label>
-                      <div className="relative cursor-pointer" onClick={(e) => (e.currentTarget.querySelector('input') as HTMLInputElement)?.showPicker?.()}>
-                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-accent pointer-events-none" />
-                        <Input
-                          required
-                          type="date"
-                          min={minDate}
-                          value={hireDetails.pickupDate}
-                          onChange={(e) => setHireDetails({ ...hireDetails, pickupDate: e.target.value })}
-                          className="pl-10 h-14 bg-black/40 border-white/10 text-white focus:border-accent transition-all rounded-xl shadow-inner cursor-pointer"
-                        />
-                      </div>
+                      <DateTimePicker
+                        date={hireDetails.pickupDate ? new Date(hireDetails.pickupDate) : undefined}
+                        setDate={(date) => setHireDetails({ ...hireDetails, pickupDate: date ? date.toISOString() : '' })}
+                        minDate={new Date()}
+                      />
                     </div>
                     <div className="space-y-1 text-left">
                       <label className="text-[10px] font-bold uppercase tracking-widest text-accent/90 ml-1">Return Date</label>
-                      <div className="relative cursor-pointer" onClick={(e) => (e.currentTarget.querySelector('input') as HTMLInputElement)?.showPicker?.()}>
-                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-accent pointer-events-none" />
-                        <Input
-                          required
-                          type="date"
-                          min={minDate}
-                          value={hireDetails.returnDate}
-                          onChange={(e) => setHireDetails({ ...hireDetails, returnDate: e.target.value })}
-                          className="pl-10 h-14 bg-black/40 border-white/10 text-white focus:border-accent transition-all rounded-xl shadow-inner cursor-pointer"
-                        />
-                      </div>
+                      <DateTimePicker
+                        date={hireDetails.returnDate ? new Date(hireDetails.returnDate) : undefined}
+                        setDate={(date) => setHireDetails({ ...hireDetails, returnDate: date ? date.toISOString() : '' })}
+                        minDate={hireDetails.pickupDate ? new Date(hireDetails.pickupDate) : new Date()}
+                      />
                     </div>
                   </div>
                   <Button
@@ -245,17 +213,11 @@ Date: ${transferDetails.date || 'Not specified'}`;
                     </div>
                     <div className="space-y-1 text-left">
                       <label className="text-[10px] font-bold uppercase tracking-widest text-accent/90 ml-1">Pickup Date & Time</label>
-                      <div className="relative cursor-pointer" onClick={(e) => (e.currentTarget.querySelector('input') as HTMLInputElement)?.showPicker?.()}>
-                        <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-accent pointer-events-none" />
-                        <Input
-                          required
-                          type="datetime-local"
-                          min={minDateTime}
-                          value={transferDetails.date}
-                          onChange={(e) => setTransferDetails({ ...transferDetails, date: e.target.value })}
-                          className="pl-10 h-14 bg-black/40 border-white/10 text-white focus:border-accent transition-all rounded-xl shadow-inner cursor-pointer"
-                        />
-                      </div>
+                      <DateTimePicker
+                        date={transferDetails.date ? new Date(transferDetails.date) : undefined}
+                        setDate={(date) => setTransferDetails({ ...transferDetails, date: date ? date.toISOString() : '' })}
+                        minDate={new Date()}
+                      />
                     </div>
                   </div>
                   <Button
@@ -357,35 +319,19 @@ Date: ${transferDetails.date || 'Not specified'}`;
                                 />
                               </div>
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="space-y-1 text-left">
-                                <label className="text-[10px] font-bold uppercase tracking-widest text-accent/90 ml-1">Pickup Date</label>
-                                <div className="relative cursor-pointer" onClick={(e) => (e.currentTarget.querySelector('input') as HTMLInputElement)?.showPicker?.()}>
-                                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-accent pointer-events-none" />
-                                  <Input
-                                    required
-                                    type="date"
-                                    min={minDate}
-                                    value={hireDetails.pickupDate}
-                                    onChange={(e) => setHireDetails({ ...hireDetails, pickupDate: e.target.value })}
-                                    className="pl-10 h-14 bg-black/40 border-white/10 text-white cursor-pointer rounded-xl"
-                                  />
-                                </div>
-                              </div>
-                              <div className="space-y-1 text-left">
-                                <label className="text-[10px] font-bold uppercase tracking-widest text-accent/90 ml-1">Return Date</label>
-                                <div className="relative cursor-pointer" onClick={(e) => (e.currentTarget.querySelector('input') as HTMLInputElement)?.showPicker?.()}>
-                                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-accent pointer-events-none" />
-                                  <Input
-                                    required
-                                    type="date"
-                                    min={minDate}
-                                    value={hireDetails.returnDate}
-                                    onChange={(e) => setHireDetails({ ...hireDetails, returnDate: e.target.value })}
-                                    className="pl-10 h-14 bg-black/40 border-white/10 text-white cursor-pointer rounded-xl"
-                                  />
-                                </div>
-                              </div>
+                            <div className="grid grid-cols-1 gap-4">
+                              <DateTimePicker
+                                label="Pickup Date"
+                                date={hireDetails.pickupDate ? new Date(hireDetails.pickupDate) : undefined}
+                                setDate={(date) => setHireDetails({ ...hireDetails, pickupDate: date ? date.toISOString() : '' })}
+                                minDate={new Date()}
+                              />
+                              <DateTimePicker
+                                label="Return Date"
+                                date={hireDetails.returnDate ? new Date(hireDetails.returnDate) : undefined}
+                                setDate={(date) => setHireDetails({ ...hireDetails, returnDate: date ? date.toISOString() : '' })}
+                                minDate={hireDetails.pickupDate ? new Date(hireDetails.pickupDate) : new Date()}
+                              />
                             </div>
                           </div>
                           <Button
@@ -428,20 +374,12 @@ Date: ${transferDetails.date || 'Not specified'}`;
                                 />
                               </div>
                             </div>
-                            <div className="space-y-1 text-left">
-                              <label className="text-[10px] font-bold uppercase tracking-widest text-accent/90 ml-1">Date & Time</label>
-                              <div className="relative cursor-pointer" onClick={(e) => (e.currentTarget.querySelector('input') as HTMLInputElement)?.showPicker?.()}>
-                                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-accent pointer-events-none" />
-                                <Input
-                                  required
-                                  type="datetime-local"
-                                  min={minDateTime}
-                                  value={transferDetails.date}
-                                  onChange={(e) => setTransferDetails({ ...transferDetails, date: e.target.value })}
-                                  className="pl-10 h-14 bg-black/40 border-white/10 text-white cursor-pointer rounded-xl"
-                                />
-                              </div>
-                            </div>
+                            <DateTimePicker
+                              label="Date & Time"
+                              date={transferDetails.date ? new Date(transferDetails.date) : undefined}
+                              setDate={(date) => setTransferDetails({ ...transferDetails, date: date ? date.toISOString() : '' })}
+                              minDate={new Date()}
+                            />
                           </div>
                           <Button
                             type="submit"

@@ -20,7 +20,7 @@ export function CarFilters({ filters, onFilterChange, totalResults }: CarFilters
   const [categories, setCategories] = useState<{ id: string; name: string; icon: string }[]>([]);
   const [locations, setLocations] = useState<string[]>([]);
   const [localSearch, setLocalSearch] = useState(filters.search || '');
-  const [priceRange, setPriceRange] = useState([0, 500]);
+  const [priceRange, setPriceRange] = useState([0, 50000]);
 
   useEffect(() => {
     const loadFiltersData = async () => {
@@ -63,7 +63,7 @@ export function CarFilters({ filters, onFilterChange, totalResults }: CarFilters
     onFilterChange({
       ...filters,
       priceMin: values[0] > 0 ? values[0] : undefined,
-      priceMax: values[1] < 500 ? values[1] : undefined,
+      priceMax: values[1] < 50000 ? values[1] : undefined,
     });
   };
 
@@ -89,7 +89,7 @@ export function CarFilters({ filters, onFilterChange, totalResults }: CarFilters
   };
 
   const clearFilters = () => {
-    setPriceRange([0, 500]);
+    setPriceRange([0, 50000]);
     onFilterChange({});
   };
 
@@ -170,8 +170,8 @@ export function CarFilters({ filters, onFilterChange, totalResults }: CarFilters
                 <Slider
                   value={priceRange}
                   onValueChange={handlePriceChange}
-                  max={500}
-                  step={10}
+                  max={50000}
+                  step={500}
                   className="w-full"
                 />
               </div>

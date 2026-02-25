@@ -1,17 +1,24 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CalendarDays, MapPin, Plus, Check, AlertTriangle, Calendar, Loader2, XCircle, Phone } from 'lucide-react';
+import { CalendarDays, MapPin, Plus, Check, AlertTriangle, Calendar, Loader2, ShieldCheck, DollarSign, Fuel, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { getBookingExtras, calculateBookingPrice, pollBookingStatus } from '@/services/bookingService';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { getBookingExtras, calculateBookingPrice } from '@/services/bookingService';
 import { getLocations, getUnavailableDates, checkDateAvailability, type UnavailableDateRange } from '@/services/carService';
 import { formatPrice } from '@/lib/currency';
 import { type Car } from '@/types';
 import { LocationAutocomplete } from '@/components/common/LocationAutocomplete';
+import { DateTimePicker } from '@/components/ui/DateTimePicker';
 
 interface BookingFormProps {
   car: Car;
@@ -29,7 +36,9 @@ export function BookingForm({ car }: BookingFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [idImage, setIdImage] = useState<File | null>(null);
   const [licenseImage, setLicenseImage] = useState<File | null>(null);
+  const [showTermsModal, setShowTermsModal] = useState(false);
 
+  /* M-PESA PAYMENT POLLING — disabled for now, re-enable when payment is needed
   // Payment polling state
   const [paymentPolling, setPaymentPolling] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<'waiting' | 'paid' | 'failed' | 'timeout'>('waiting');
@@ -38,7 +47,6 @@ export function BookingForm({ car }: BookingFormProps) {
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Cleanup polling on unmount
   useEffect(() => {
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current);
@@ -56,15 +64,12 @@ export function BookingForm({ car }: BookingFormProps) {
     setPaymentStatus('waiting');
     setPollingBookingId(bookingId);
     setPendingNavState(navState);
-
-    // Poll every 3 seconds
     pollingRef.current = setInterval(async () => {
       try {
         const status = await pollBookingStatus(bookingId);
         if (status === 'paid') {
           stopPolling();
           setPaymentStatus('paid');
-          // Small delay so user sees the success state
           setTimeout(() => {
             navigate('/booking/confirmation', { state: { ...navState, type: 'book_now' } });
           }, 1500);
@@ -76,13 +81,12 @@ export function BookingForm({ car }: BookingFormProps) {
         // Silently retry on network errors
       }
     }, 3000);
-
-    // Timeout after 90 seconds
     timeoutRef.current = setTimeout(() => {
       stopPolling();
       setPaymentStatus('timeout');
     }, 90000);
   }, [navigate, stopPolling]);
+  */
   const [formData, setFormData] = useState({
     pickupDate: '',
     returnDate: '',
@@ -214,14 +218,7 @@ export function BookingForm({ car }: BookingFormProps) {
       const responseData = result.data || result;
       const booking = responseData.booking || responseData;
 
-      if (type === 'book_now') {
-        // Start polling — don't navigate until M-Pesa confirms payment
-        startPaymentPolling(booking.bookingId, {
-          car,
-          booking,
-          stkResult: responseData.stkResult,
-        });
-      } else {
+      if (type === 'reserve') {
         // Reserve flow — navigate immediately
         navigate('/booking/confirmation', {
           state: { car, booking, type },
@@ -249,102 +246,11 @@ export function BookingForm({ car }: BookingFormProps) {
 
   return (
     <>
-      {/* Payment Polling Overlay */}
+      {/* M-PESA PAYMENT OVERLAY — disabled, re-enable when payment is needed
       <AnimatePresence>
-        {paymentPolling && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex items-center justify-center p-4"
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              className="bg-card rounded-2xl shadow-2xl border border-border/50 p-8 max-w-md w-full text-center space-y-6"
-            >
-              {paymentStatus === 'waiting' && (
-                <>
-                  <div className="w-20 h-20 mx-auto rounded-full gradient-accent flex items-center justify-center">
-                    <Phone className="w-10 h-10 text-accent-foreground animate-pulse" />
-                  </div>
-                  <div>
-                    <h2 className="font-display text-2xl font-bold mb-2">Waiting for Payment</h2>
-                    <p className="text-muted-foreground">
-                      Please check your phone and enter your M-Pesa PIN to complete the payment.
-                    </p>
-                  </div>
-                  <div className="flex items-center justify-center gap-2 text-accent">
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    <span className="text-sm font-medium">Checking payment status...</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    This will update automatically once payment is confirmed.
-                  </p>
-                </>
-              )}
-
-              {paymentStatus === 'paid' && (
-                <>
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: 'spring' }}
-                    className="w-20 h-20 mx-auto rounded-full bg-success flex items-center justify-center"
-                  >
-                    <Check className="w-10 h-10 text-success-foreground" />
-                  </motion.div>
-                  <div>
-                    <h2 className="font-display text-2xl font-bold text-success mb-2">Payment Confirmed!</h2>
-                    <p className="text-muted-foreground">Redirecting to your booking details...</p>
-                  </div>
-                </>
-              )}
-
-              {(paymentStatus === 'failed' || paymentStatus === 'timeout') && (
-                <>
-                  <div className="w-20 h-20 mx-auto rounded-full bg-destructive/10 flex items-center justify-center">
-                    <XCircle className="w-10 h-10 text-destructive" />
-                  </div>
-                  <div>
-                    <h2 className="font-display text-2xl font-bold mb-2">
-                      {paymentStatus === 'failed' ? 'Payment Not Completed' : 'Payment Timed Out'}
-                    </h2>
-                    <p className="text-muted-foreground">
-                      {paymentStatus === 'failed'
-                        ? 'The M-Pesa payment was cancelled or failed. Your booking has not been charged.'
-                        : 'We didn\'t receive a payment confirmation in time. If you completed the payment, please contact support with your booking reference.'}
-                    </p>
-                  </div>
-                  {pollingBookingId && (
-                    <p className="text-xs text-muted-foreground">
-                      Booking Reference: <span className="font-mono font-bold">{pollingBookingId}</span>
-                    </p>
-                  )}
-                  <div className="flex flex-col gap-2">
-                    <Button
-                      onClick={() => {
-                        setPaymentPolling(false);
-                        setPaymentStatus('waiting');
-                        setError(null);
-                      }}
-                      className="gradient-accent text-accent-foreground border-0"
-                    >
-                      Try Again
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => navigate('/')}
-                    >
-                      Back to Home
-                    </Button>
-                  </div>
-                </>
-              )}
-            </motion.div>
-          </motion.div>
-        )}
+        {paymentPolling && ( ... )}
       </AnimatePresence>
+      */}
 
       <form className="space-y-6">
         {/* Dates */}
@@ -353,33 +259,29 @@ export function BookingForm({ car }: BookingFormProps) {
             <CalendarDays className="w-5 h-5 text-accent" />
             Rental Period
           </h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="pickupDate">Pickup Date & Time</Label>
-              <Input
-                type="datetime-local"
-                id="pickupDate"
-                name="pickupDate"
-                value={formData.pickupDate}
-                onChange={handleChange}
-                min={new Date().toISOString().slice(0, 16)}
-                required
-                className={dateConflict ? 'border-destructive' : ''}
-              />
-            </div>
-            <div>
-              <Label htmlFor="returnDate">Return Date & Time</Label>
-              <Input
-                type="datetime-local"
-                id="returnDate"
-                name="returnDate"
-                value={formData.returnDate}
-                onChange={handleChange}
-                min={formData.pickupDate || new Date().toISOString().slice(0, 16)}
-                required
-                className={dateConflict ? 'border-destructive' : ''}
-              />
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <DateTimePicker
+              label="Pickup Date & Time"
+              date={formData.pickupDate ? new Date(formData.pickupDate) : undefined}
+              setDate={(date) =>
+                setFormData(prev => ({
+                  ...prev,
+                  pickupDate: date ? date.toISOString() : ''
+                }))
+              }
+              minDate={new Date()}
+            />
+            <DateTimePicker
+              label="Return Date & Time"
+              date={formData.returnDate ? new Date(formData.returnDate) : undefined}
+              setDate={(date) =>
+                setFormData(prev => ({
+                  ...prev,
+                  returnDate: date ? date.toISOString() : ''
+                }))
+              }
+              minDate={formData.pickupDate ? new Date(formData.pickupDate) : new Date()}
+            />
           </div>
 
           {/* Date Validation Error */}
@@ -519,17 +421,17 @@ export function BookingForm({ car }: BookingFormProps) {
               />
             </div>
             <div>
-              <Label htmlFor="customerPhone">Phone Number (M-Pesa)</Label>
+              <Label htmlFor="customerPhone">Phone Number</Label>
               <Input
                 type="tel"
                 id="customerPhone"
                 name="customerPhone"
                 value={formData.customerPhone}
                 onChange={handleChange}
-                placeholder="2547XXXXXXXX"
+                placeholder="e.g. 0712345678"
                 required
               />
-              <p className="text-[10px] text-muted-foreground mt-1">Format: 2547xxxxxxxx</p>
+              <p className="text-[10px] text-muted-foreground mt-1">We'll use this to confirm your reservation</p>
             </div>
           </div>
         </Card>
@@ -611,7 +513,14 @@ export function BookingForm({ car }: BookingFormProps) {
             />
             <div className="space-y-1">
               <Label htmlFor="terms" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                I agree to the <Link to="/terms" className="text-accent underline hover:text-accent/80" target="_blank">Terms & Conditions</Link>
+                I agree to the{' '}
+                <button
+                  type="button"
+                  onClick={() => setShowTermsModal(true)}
+                  className="text-accent underline hover:text-accent/80 font-medium"
+                >
+                  Terms &amp; Conditions
+                </button>
               </Label>
               <p className="text-xs text-muted-foreground">
                 By checking this, you acknowledge our age requirements, geographical limits (50km from Nairobi), and damage responsibility policies.
@@ -620,12 +529,57 @@ export function BookingForm({ car }: BookingFormProps) {
           </div>
         </Card>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {/* Inline Terms & Conditions Modal */}
+        <Dialog open={showTermsModal} onOpenChange={setShowTermsModal}>
+          <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 font-display text-xl">
+                <ShieldCheck className="w-6 h-6 text-accent" />
+                Terms &amp; Conditions
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 text-sm">
+              {[
+                { icon: Clock, title: 'Age Requirement', content: 'The renter must be at least 18 years of age to qualify for the rental. A valid driving license is mandatory.' },
+                { icon: MapPin, title: 'Pickup & Return', content: 'The vehicle is to be picked up and returned to the same location, which is situated next to Decale Hotel (Eastleigh 12th St).' },
+                { icon: DollarSign, title: 'Booking Deposit', content: "A deposit is required prior to the rental to confirm the booking." },
+                { icon: MapPin, title: 'Geographical Limit', content: 'The vehicle must remain within a 50km radius of Nairobi. This ensures we can provide timely assistance if needed.' },
+                { icon: DollarSign, title: 'Extended Travel', content: 'Any travel beyond the 50km radius of Nairobi will incur an additional charge of Ksh 30 per kilometer.' },
+                { icon: ShieldCheck, title: 'Damage Responsibility', content: 'The renter is fully responsible for any damages to the vehicle and must cover the full cost of repairs and any associated downtime.' },
+                { icon: Fuel, title: 'Vehicle Condition & Fuel', content: 'The vehicle must be returned in the same condition as received. The fuel level must match the level at pickup.' },
+              ].map((section) => (
+                <div key={section.title} className="flex gap-3 p-3 rounded-lg bg-secondary/50 border border-border/50">
+                  <div className="w-8 h-8 rounded-md bg-accent/10 flex items-center justify-center shrink-0 mt-0.5">
+                    <section.icon className="w-4 h-4 text-accent" />
+                  </div>
+                  <div>
+                    <p className="font-semibold mb-0.5">{section.title}</p>
+                    <p className="text-muted-foreground leading-relaxed">{section.content}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="pt-4 border-t border-border">
+              <Button
+                className="w-full gradient-accent text-accent-foreground border-0 h-12 font-semibold"
+                onClick={() => {
+                  setFormData(prev => ({ ...prev, agreedToTerms: true }));
+                  setShowTermsModal(false);
+                }}
+              >
+                <Check className="w-4 h-4 mr-2" />
+                I Agree &amp; Continue
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <div className="w-full">
           <Button
             type="button"
-            onClick={(e) => handleSubmit(e, 'book_now')}
+            onClick={(e) => handleSubmit(e, 'reserve')}
             size="lg"
-            className="gradient-accent text-accent-foreground border-0 shadow-accent h-14 text-lg font-semibold"
+            className="w-full gradient-accent text-accent-foreground border-0 shadow-accent h-14 text-lg font-semibold"
             disabled={!isFormValid || isSubmitting}
           >
             {isSubmitting ? (
@@ -633,22 +587,11 @@ export function BookingForm({ car }: BookingFormProps) {
             ) : (
               <Check className="w-5 h-5 mr-2" />
             )}
-            Pay & Book Now
-          </Button>
-
-          <Button
-            type="button"
-            onClick={(e) => handleSubmit(e, 'reserve')}
-            variant="outline"
-            size="lg"
-            className="h-14 text-lg font-semibold border-2"
-            disabled={!isFormValid || isSubmitting}
-          >
-            Reserve
+            Reserve Now
           </Button>
         </div>
         <p className="text-[10px] text-center text-muted-foreground">
-          Reserve flow requires admin confirmation before payment.
+          Our team will contact you to confirm your reservation.
         </p>
       </form>
     </>
