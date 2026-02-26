@@ -21,7 +21,8 @@ import {
   Download,
   BarChart3,
   Calendar,
-  Filter
+  Filter,
+  RefreshCcw
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatPrice } from '@/lib/currency';
@@ -47,7 +48,8 @@ import {
   checkIn,
   markAsOverdue,
   markNoShow,
-  confirmPayment
+  confirmPayment,
+  getBookingById
 } from '@/services/bookingService';
 import { getRevenue, exportRevenueCSV, exportRevenuePDF, getQuickDateRange, type RevenueResponse } from '@/services/revenueService';
 import { AdminCarModal } from '@/components/admin/AdminCarModal';
@@ -55,6 +57,7 @@ import { CheckInModal } from '@/components/admin/CheckInModal';
 import { AdminBookingDetailsModal } from '@/components/admin/AdminBookingDetailsModal';
 import type { Car as CarType, Booking } from '@/types';
 
+import { useToast } from '@/hooks/use-toast';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { DashboardStats } from '@/components/admin/DashboardStats';
 
@@ -70,6 +73,7 @@ const statusConfig: Record<string, { label: string; color: string; icon: any }> 
 };
 
 export default function Admin() {
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [cars, setCars] = useState<CarType[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -123,6 +127,14 @@ export default function Admin() {
 
   useEffect(() => {
     loadData();
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(() => {
+      // Only refresh if not already loading and not in the middle of a search/modal
+      if (!isLoading && !isModalOpen && !isCheckInModalOpen && !isDetailsModalOpen) {
+        loadData();
+      }
+    }, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   // Sync revenue loading with tab selection
@@ -217,8 +229,11 @@ export default function Admin() {
   const handleConfirmBooking = async (id: string) => {
     const updated = await updateBookingStatus(id, 'confirmed');
     if (updated) {
+      toast({ title: 'Booking Confirmed', description: `Booking ${updated.bookingId} has been confirmed.` });
       if (selectedBooking && selectedBooking.id === id) setSelectedBooking(updated);
       loadData();
+    } else {
+      toast({ title: 'Update Failed', description: 'Could not confirm booking. Please try again.', variant: 'destructive' });
     }
   };
 
@@ -226,11 +241,13 @@ export default function Admin() {
     if (window.confirm('Are you sure you want to cancel this booking?')) {
       const success = await cancelBooking(id);
       if (success) {
+        toast({ title: 'Booking Cancelled', description: 'The booking has been successfully cancelled.' });
         if (selectedBooking && selectedBooking.id === id) {
-          // Update local status so modal reflects it
           setSelectedBooking({ ...selectedBooking, status: 'cancelled' });
         }
         loadData();
+      } else {
+        toast({ title: 'Cancellation Failed', description: 'Could not cancel booking.', variant: 'destructive' });
       }
     }
   };
@@ -238,27 +255,38 @@ export default function Admin() {
   const handleStartTrip = async (id: string) => {
     const updated = await startTrip(id);
     if (updated) {
+      toast({ title: 'Trip Started', description: `Trip for ${updated.bookingId} has officially started.` });
       if (selectedBooking && selectedBooking.id === id) setSelectedBooking(updated);
       loadData();
+    } else {
+      toast({
+        title: 'Checkout Failed',
+        description: 'Ensure the booking is confirmed/paid and not already active.',
+        variant: 'destructive'
+      });
     }
   };
 
   const handleMarkPaid = async (id: string) => {
     const receipt = window.prompt('Enter M-Pesa Receipt Number (Manual Confirmation):', 'MANUAL-CONFIRM');
-    if (receipt === null) return; // Cancelled
+    if (receipt === null) return;
 
     const amountStr = window.prompt('Enter Paid Amount (Leave empty for total price):');
     const amount = amountStr ? parseFloat(amountStr) : undefined;
 
     const updated = await confirmPayment(id, receipt, amount);
     if (updated) {
+      toast({ title: 'Payment Confirmed', description: `Booking ${updated.bookingId} marked as paid.` });
       if (selectedBooking && selectedBooking.id === id) setSelectedBooking(updated);
       loadData();
+    } else {
+      toast({ title: 'Payment Failed', description: 'Could not update payment status.', variant: 'destructive' });
     }
   };
 
   const handleCheckIn = (booking: Booking) => {
     setSelectedBooking(booking);
+    setIsDetailsModalOpen(false);
     setIsCheckInModalOpen(true);
   };
 
@@ -271,7 +299,11 @@ export default function Admin() {
     if (window.confirm('Mark this booking as overdue and send alert email?')) {
       const updated = await markAsOverdue(id);
       if (updated) {
+        toast({ title: 'Overdue Alert Sent', description: `Booking ${updated.bookingId} marked as overdue.` });
+        if (selectedBooking && selectedBooking.id === id) setSelectedBooking(updated);
         loadData();
+      } else {
+        toast({ title: 'Action Failed', description: 'Could not mark as overdue.', variant: 'destructive' });
       }
     }
   };
@@ -280,7 +312,11 @@ export default function Admin() {
     if (window.confirm('Customer did not show up. Release car and make it available for others?')) {
       const updated = await markNoShow(id);
       if (updated) {
+        toast({ title: 'Car Released', description: 'Booking marked as No-Show and car set to available.' });
+        if (selectedBooking && selectedBooking.id === id) setSelectedBooking(updated);
         loadData();
+      } else {
+        toast({ title: 'Action Failed', description: 'Could not mark as no-show.', variant: 'destructive' });
       }
     }
   };
@@ -288,26 +324,44 @@ export default function Admin() {
   const handleResetStatus = async (id: string) => {
     const updated = await updateBookingStatus(id, 'pending');
     if (updated) {
+      toast({ title: 'Status Reset', description: 'Booking has been reset to Pending.' });
       if (selectedBooking && selectedBooking.id === id) setSelectedBooking(updated);
       loadData();
+    } else {
+      toast({ title: 'Reset Failed', description: 'Could not reset booking status.', variant: 'destructive' });
     }
   };
 
   const dashboardStats = {
     carTotal,
-    activeBookings: bookings.filter(b => b.status === 'confirmed' || b.status === 'paid' || b.status === 'active').length,
-    totalRevenue: bookings.filter(b => b.status === 'paid' || b.status === 'completed').reduce((sum, b) => sum + b.totalPrice, 0),
+    activeBookings: bookings.filter(b => ['confirmed', 'paid', 'active', 'overdue'].includes(b.status)).length,
+    totalRevenue: bookings.filter(b => ['paid', 'active', 'overdue', 'completed'].includes(b.status)).reduce((sum, b) => {
+      const penalty = b.penaltyFee?.status === 'paid' ? b.penaltyFee.amount : 0;
+      return sum + b.totalPrice + penalty;
+    }, 0),
     customerCount: new Set(bookings.map(b => b.customerEmail)).size,
   };
+
+  const sortedBookings = [...bookings].sort((a, b) =>
+    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+
+  const carToActiveBooking = bookings.reduce((acc, b) => {
+    if (['active', 'overdue'].includes(b.status)) {
+      acc[b.carId] = b;
+    }
+    return acc;
+  }, {} as Record<string, Booking>);
 
   const filteredCars = cars.filter(car =>
     car.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     car.brand.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const filteredBookings = bookings.filter(booking =>
+  const filteredBookings = sortedBookings.filter(booking =>
     `${booking.firstName} ${booking.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
     booking.carName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    booking.bookingId.toLowerCase().includes(searchQuery.toLowerCase()) ||
     booking.id.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -354,7 +408,7 @@ export default function Admin() {
                 </div>
                 {/* Simplified list for dashboard */}
                 <div className="space-y-4">
-                  {bookings.slice(0, 5).map(booking => (
+                  {sortedBookings.slice(0, 5).map(booking => (
                     <div key={booking.id} className="flex items-center justify-between p-3 rounded-xl bg-secondary/30 hover:bg-secondary/50 transition-colors border border-border/10 cursor-pointer" onClick={() => handleViewDetails(booking)}>
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0">
@@ -506,7 +560,7 @@ export default function Admin() {
                                       Confirm Status
                                     </DropdownMenuItem>
                                   )}
-                                  {booking.status === 'paid' && (
+                                  {(booking.status === 'paid' || booking.status === 'confirmed') && (
                                     <DropdownMenuItem onClick={() => handleStartTrip(booking.id)}>
                                       <TrendingUp className="w-4 h-4 mr-2" />
                                       Checkout (Start Trip)
@@ -576,16 +630,21 @@ export default function Admin() {
                           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                           wrapperClassName="h-full"
                         />
-                        <div className="absolute top-2 right-2">
+                        <div className="absolute top-2 right-2 flex flex-col items-end gap-2">
                           <Badge
                             className={
                               car.available
-                                ? 'bg-success text-success-foreground border-0'
-                                : 'bg-muted text-muted-foreground'
+                                ? 'bg-success text-success-foreground border-0 shadow-sm'
+                                : 'bg-muted text-muted-foreground shadow-sm'
                             }
                           >
-                            {car.available ? 'Available' : 'Unavailable'}
+                            {car.available ? 'Available' : 'Currently Out on Trip'}
                           </Badge>
+                          {!car.available && carToActiveBooking[car.id] && (
+                            <Badge variant="secondary" className="bg-white/95 backdrop-blur-md text-black border-0 text-[10px] font-bold shadow-sm">
+                              Expected: {new Date(carToActiveBooking[car.id].returnDate).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            </Badge>
+                          )}
                         </div>
                       </div>
                       <div className="p-4">
@@ -828,6 +887,7 @@ export default function Admin() {
           isOpen={isCheckInModalOpen}
           onClose={() => setIsCheckInModalOpen(false)}
           onSuccess={async () => {
+            toast({ title: 'Return Completed', description: 'The vehicle is now available for new bookings.' });
             if (selectedBooking) {
               const updated = await getBookingById(selectedBooking.id);
               if (updated) setSelectedBooking(updated);

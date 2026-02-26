@@ -414,6 +414,9 @@ exports.cancelBooking = async (req, res) => {
         booking.status = 'cancelled';
         await booking.save();
 
+        // Release the car
+        await Car.findByIdAndUpdate(booking.car, { available: true });
+
         // CLEAR CACHE: Cancelled booking frees up dates
         const { clearCarCache } = require('../config/redis.config');
         await clearCarCache();
@@ -471,8 +474,8 @@ exports.startTrip = async (req, res) => {
         const booking = await Booking.findById(req.params.id);
         if (!booking) return sendError(res, 'Booking not found', 404);
 
-        if (!['paid', 'confirmed'].includes(booking.status)) {
-            return sendError(res, 'Booking must be paid or confirmed before starting trip', 400);
+        if (!['paid', 'confirmed', 'reserved'].includes(booking.status)) {
+            return sendError(res, 'Booking must be paid, reserved, or confirmed before starting trip', 400);
         }
 
         booking.status = 'active';
@@ -484,6 +487,10 @@ exports.startTrip = async (req, res) => {
         // CLEAR CACHE: Ensure website hides car instantly
         const { clearCarCache } = require('../config/redis.config');
         await clearCarCache();
+
+        // Send "Trip Started" email
+        const { sendTripStartEmail } = require('../services/email.service');
+        await sendTripStartEmail(booking);
 
         sendSuccess(res, booking, 'Trip started successfully');
     } catch (error) {
@@ -499,9 +506,17 @@ exports.checkIn = async (req, res) => {
         const booking = await Booking.findById(req.params.id).populate('car');
         if (!booking) return sendError(res, 'Booking not found', 404);
 
+        if (booking.status === 'completed') {
+            return sendSuccess(res, booking, 'Booking already completed');
+        }
+
         const actualReturnDate = new Date();
         const expectedReturnDate = new Date(booking.returnDate);
-        const car = await Car.findById(booking.car);
+        const car = booking.car;
+
+        if (!car) {
+            return sendError(res, 'Associated car not found for this booking', 404);
+        }
 
         // Calculate late fee penalty
         const diffMs = actualReturnDate - expectedReturnDate;
@@ -511,7 +526,7 @@ exports.checkIn = async (req, res) => {
         let penaltyReason = 'None';
 
         if (diffHours > 1) { // 1 hour grace period
-            const dailyRate = car.pricePerDay;
+            const dailyRate = car.pricePerDay || 0;
             if (diffHours <= 6) {
                 penaltyAmount = dailyRate * 0.5;
                 penaltyReason = `Late Return (${diffHours.toFixed(1)} hours overdue)`;
@@ -521,36 +536,44 @@ exports.checkIn = async (req, res) => {
             }
         }
 
-        booking.actualReturnDate = actualReturnDate;
-        booking.status = 'completed';
+        const penaltyFee = {
+            amount: penaltyAmount,
+            status: penaltyAmount > 0 ? 'pending' : 'none',
+            reason: penaltyAmount > 0 ? penaltyReason : 'Returned on time'
+        };
 
-        if (penaltyAmount > 0) {
-            booking.penaltyFee = {
-                amount: penaltyAmount,
-                status: 'pending',
-                reason: penaltyReason
-            };
-        } else {
-            booking.penaltyFee = {
-                amount: 0,
-                status: 'none',
-                reason: 'Returned on time'
-            };
-        }
+        // Atomic update for booking
+        const updatedBooking = await Booking.findByIdAndUpdate(
+            req.params.id,
+            {
+                actualReturnDate,
+                status: 'completed',
+                penaltyFee
+            },
+            { new: true }
+        ).populate('car');
 
-        await booking.save();
-
-        // AUTOMATION: Mark car as available again
-        const carId = booking.car._id || booking.car;
-        await Car.findByIdAndUpdate(carId, { available: true });
+        // Mark car as available
+        await Car.findByIdAndUpdate(car._id, { available: true });
 
         // CLEAR CACHE: Ensure website shows car as available immediately
-        const { clearCarCache } = require('../config/redis.config');
-        await clearCarCache();
+        try {
+            const { clearCarCache } = require('../config/redis.config');
+            await clearCarCache();
+        } catch (cacheErr) {
+            logger.error(`Cache clear failed: ${cacheErr.message}`);
+        }
 
-        sendSuccess(res, booking, 'Check-in completed successfully');
+        // Send "Trip Completed" email (Non-blocking)
+        const { sendTripCompleteEmail } = require('../services/email.service');
+        sendTripCompleteEmail(updatedBooking).catch(mailErr => {
+            logger.error(`Trip complete email failed: ${mailErr.message}`);
+        });
+
+        sendSuccess(res, updatedBooking, 'Check-in completed successfully');
     } catch (error) {
-        sendError(res, error.message, 500);
+        logger.error(`Check-in Error: ${error.message}`);
+        sendError(res, 'Failed to complete check-in: ' + error.message, 500);
     }
 };
 

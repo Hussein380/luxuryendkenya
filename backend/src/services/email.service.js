@@ -269,20 +269,48 @@ const emailTemplates = {
                     <strong>Please return the vehicle immediately to avoid additional charges.</strong>
                 </p>
             </div>
-            <div style="background-color: #fff3cd; border-radius: 8px; padding: 20px; margin: 25px 0;">
-                <h4 style="color: #856404; margin: 0 0 10px 0;">📍 Return Location</h4>
-                <p style="color: #856404; margin: 0; font-size: 15px;"><strong>Eastleigh 12nd St, Sec 2, Nairobi</strong></p>
-            </div>
-            <div style="background-color: #f8d7da; border-radius: 8px; padding: 15px; margin: 25px 0;">
-                <p style="color: #721c24; margin: 0; font-size: 14px;">
-                    <strong>💰 Late Fee Notice:</strong> Your booking is now in a penalty period (>1 hour late). Additional charges will apply upon check-in.
-                </p>
-            </div>
             <p style="color: #dc3545; font-size: 15px; margin: 25px 0 0 0; text-align: center;">
                 <strong>If you're having trouble returning the car, contact us immediately:</strong><br>
                 <a href="tel:${CONTACT_PHONE}" style="color: #dc3545; font-size: 18px; text-decoration: none;">${CONTACT_PHONE}</a>
             </p>
         `, 'Booking Overdue'),
+    }),
+    'trip-started': (data) => ({
+        subject: `🚀 Trip Started! Enjoy your ride (#${data.bookingId})`,
+        html: baseTemplate(`
+            <h2 style="color: #1e3a5f; margin: 0 0 20px 0; font-size: 24px;">Trip Started! 🚀</h2>
+            <p style="color: #495057; font-size: 16px; line-height: 1.6; margin: 0 0 25px 0;">
+                Hi <strong>${data.customerName}</strong>, your rental for the <strong>${data.carName}</strong> has officially started.
+            </p>
+            <div style="background-color: #e7f3ff; border-left: 4px solid #1e3a5f; padding: 20px; margin: 25px 0; border-radius: 0 8px 8px 0;">
+                <p style="margin: 8px 0; color: #1e3a5f; font-size: 15px;"><strong>Return Schedule:</strong> ${new Date(data.returnDate).toLocaleString('en-KE', { weekday: 'long', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                <p style="margin: 8px 0; color: #1e3a5f; font-size: 15px;"><strong>Support:</strong> Call us anytime at ${CONTACT_PHONE}</p>
+            </div>
+            <p style="color: #6c757d; font-size: 16px; line-height: 1.6; margin: 25px 0 0 0;">
+                We wish you a smooth and pleasant journey. Drive safely!
+            </p>
+        `, 'Trip Started'),
+    }),
+    'trip-completed': (data) => ({
+        subject: `🏁 Trip Completed! Thank you for choosing luxuryend (#${data.bookingId})`,
+        html: baseTemplate(`
+            <h2 style="color: #28a745; margin: 0 0 20px 0; font-size: 24px;">Welcome Back! 🏁</h2>
+            <p style="color: #495057; font-size: 16px; line-height: 1.6; margin: 0 0 25px 0;">
+                Hi <strong>${data.customerName}</strong>, thank you for returning the <strong>${data.carName}</strong>. We hope you had an excellent experience.
+            </p>
+            <div style="background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 25px; margin: 25px 0;">
+                <h3 style="color: #1e3a5f; margin: 0 0 15px 0; font-size: 18px;">Rental Summary</h3>
+                <p style="margin: 8px 0; color: #495057; font-size: 15px;"><strong>Booking ID:</strong> ${data.bookingId}</p>
+                <p style="margin: 8px 0; color: #495057; font-size: 15px;"><strong>Total Price:</strong> KES ${data.totalPrice.toLocaleString()}</p>
+                ${data.penaltyFee?.amount > 0 ? `
+                <p style="margin: 8px 0; color: #dc3545; font-size: 15px;"><strong>Late Fee Applied:</strong> KES ${data.penaltyFee.amount.toLocaleString()} (${data.penaltyFee.reason})</p>
+                ` : ''}
+                <p style="margin: 8px 0; color: #28a745; font-size: 15px;"><strong>Status:</strong> COMPLETED</p>
+            </div>
+            <p style="color: #495057; font-size: 16px; line-height: 1.6; margin: 25px 0 0 0; text-align: center;">
+                We'd love to see you again soon!
+            </p>
+        `, 'Trip Completed'),
     }),
 };
 
@@ -311,7 +339,11 @@ const sendEmailDirectly = async (type, data) => {
         });
 
         if (error) {
-            logger.error(`Resend error: ${error.message} (Type: ${error.name})`);
+            if (error.name === 'validation_error' && error.message.includes('testing emails')) {
+                logger.warn(`Resend Sandbox Limitation: Could not send email to ${recipient}. Verify domain at resend.com for production use.`);
+            } else {
+                logger.error(`Resend error: ${error.message} (Type: ${error.name})`);
+            }
             return null;
         }
 
@@ -337,9 +369,27 @@ const sendOverdueAlert = async (booking) => {
     });
 };
 
+const sendTripStartEmail = async (booking) => {
+    return sendEmailDirectly('trip-started', {
+        ...booking.toObject(),
+        customerName: `${booking.firstName} ${booking.lastName}`,
+        carName: booking.car?.name || 'N/A'
+    });
+};
+
+const sendTripCompleteEmail = async (booking) => {
+    return sendEmailDirectly('trip-completed', {
+        ...booking.toObject(),
+        customerName: `${booking.firstName} ${booking.lastName}`,
+        carName: booking.car?.name || 'N/A'
+    });
+};
+
 module.exports = {
     sendEmailDirectly,
     sendReturnReminder,
     sendOverdueAlert,
+    sendTripStartEmail,
+    sendTripCompleteEmail,
     emailTemplates,
 };
