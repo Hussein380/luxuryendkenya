@@ -49,7 +49,7 @@ export async function getRevenue(filters: RevenueFilters = {}): Promise<RevenueR
   if (filters.groupBy) params.append('groupBy', filters.groupBy);
 
   const response = await apiRequest<RevenueResponse>(`/admin/revenue?${params.toString()}`);
-  
+
   if (response.success && response.data) {
     return response.data;
   }
@@ -67,71 +67,50 @@ export async function exportRevenueCSV(filters: RevenueFilters = {}): Promise<vo
   // Get the base URL from the API client
   const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
   const downloadUrl = `${baseUrl}/admin/revenue/export/csv?${params.toString()}`;
-  
+
   // Get token from localStorage (using the correct key)
   const token = localStorage.getItem('driveease_token');
-  
+
   if (!token) {
     throw new Error('Not authenticated');
   }
-  
-  // Fetch with authentication
+
+  // Check if it's mobile (Android/iOS)
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+  if (isMobile) {
+    // Mobile: Use direct window.open with token in query for reliability
+    // This triggers the browser's native download/view handler
+    const authenticatedUrl = `${downloadUrl}${downloadUrl.includes('?') ? '&' : '?'}token=${token}`;
+    window.open(authenticatedUrl, '_blank');
+    return;
+  }
+
+  // Desktop: Fetch with authentication and handle as blob
   const response = await fetch(downloadUrl, {
     headers: {
       'Authorization': `Bearer ${token}`
     }
   });
-  
+
   if (!response.ok) {
     throw new Error('Failed to download CSV');
   }
-  
-  // Create blob and download
+
   const blob = await response.blob();
   const filename = `revenue-${filters.startDate || 'all'}-to-${filters.endDate || 'all'}.csv`;
-  
-  // Check if it's iOS (which has strict download restrictions)
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-  
-  if (isIOS || isSafari) {
-    // For iOS/Safari, read as text and offer data URL
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      const dataUrl = e.target?.result as string;
-      if (dataUrl) {
-        // Create a temporary link with data URL
-        const a = document.createElement('a');
-        a.href = dataUrl;
-        a.download = filename;
-        document.body.appendChild(a);
-        
-        // Use click with slight delay for iOS
-        setTimeout(() => {
-          a.click();
-          setTimeout(() => {
-            document.body.removeChild(a);
-          }, 100);
-        }, 0);
-      }
-    };
-    reader.readAsDataURL(blob);
-  } else {
-    // Standard approach for Android/Chrome
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.style.display = 'none';
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    
-    // Cleanup
-    setTimeout(() => {
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-    }, 100);
-  }
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.style.display = 'none';
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+
+  setTimeout(() => {
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  }, 100);
 }
 
 /**
@@ -146,58 +125,52 @@ export async function exportRevenuePDF(filters: RevenueFilters = {}, includeDeta
   // Get the base URL from the API client
   const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
   const downloadUrl = `${baseUrl}/admin/revenue/export/pdf?${params.toString()}`;
-  
+
   // Get token from localStorage (using the correct key)
   const token = localStorage.getItem('driveease_token');
-  
+
   if (!token) {
     throw new Error('Not authenticated');
   }
-  
+
   // Fetch with authentication
+  // Check if mobile device
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+  if (isMobile) {
+    // Mobile: Use direct window.open with token in query (browser handles viewing/downloading)
+    const authenticatedUrl = `${downloadUrl}${downloadUrl.includes('?') ? '&' : '?'}token=${token}`;
+    window.open(authenticatedUrl, '_blank');
+    return;
+  }
+
+  // Desktop: Fetch with authentication and handle as blob
   const response = await fetch(downloadUrl, {
     headers: {
       'Authorization': `Bearer ${token}`
     }
   });
-  
+
   if (!response.ok) {
     throw new Error('Failed to download PDF');
   }
-  
-  // Create blob and handle based on device type
+
+  // Create blob and handle
   const blob = await response.blob();
   const url = window.URL.createObjectURL(blob);
-  
-  // Check if mobile device
-  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-  
-  if (isMobile) {
-    // Mobile: Open PDF in new tab (browser handles viewing/downloading)
-    const newWindow = window.open(url, '_blank');
-    if (newWindow) {
-      // Clean up blob URL after a delay (browser has it now)
-      setTimeout(() => window.URL.revokeObjectURL(url), 60000);
-    } else {
-      // Popup blocked - try direct navigation
-      window.location.href = url;
-    }
-  } else {
-    // Desktop: Direct download
-    const suffix = includeDetails ? 'full' : 'summary';
-    const filename = `revenue-report-${suffix}-${filters.startDate || 'all'}-to-${filters.endDate || 'all'}.pdf`;
-    const a = document.createElement('a');
-    a.style.display = 'none';
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    
-    setTimeout(() => {
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-    }, 100);
-  }
+  const suffix = includeDetails ? 'full' : 'summary';
+  const filename = `revenue-report-${suffix}-${filters.startDate || 'all'}-to-${filters.endDate || 'all'}.pdf`;
+  const a = document.createElement('a');
+  a.style.display = 'none';
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+
+  setTimeout(() => {
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  }, 100);
 }
 
 /**
@@ -220,9 +193,9 @@ export function getQuickDateRange(range: 'today' | 'week' | 'month' | 'year'): {
       monday.setDate(now.getDate() - diffToMonday);
       const sunday = new Date(monday);
       sunday.setDate(monday.getDate() + 6);
-      return { 
-        startDate: monday.toISOString().split('T')[0], 
-        endDate: sunday.toISOString().split('T')[0] 
+      return {
+        startDate: monday.toISOString().split('T')[0],
+        endDate: sunday.toISOString().split('T')[0]
       };
     }
     case 'month': {
@@ -230,18 +203,18 @@ export function getQuickDateRange(range: 'today' | 'week' | 'month' | 'year'): {
       const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
       startDate = firstDayOfMonth.toISOString().split('T')[0];
-      return { 
-        startDate, 
-        endDate: lastDayOfMonth.toISOString().split('T')[0] 
+      return {
+        startDate,
+        endDate: lastDayOfMonth.toISOString().split('T')[0]
       };
     }
     case 'year': {
       // Current calendar year (Jan 1 to Dec 31)
       const firstDayOfYear = new Date(now.getFullYear(), 0, 1);
       const lastDayOfYear = new Date(now.getFullYear(), 11, 31);
-      return { 
-        startDate: firstDayOfYear.toISOString().split('T')[0], 
-        endDate: lastDayOfYear.toISOString().split('T')[0] 
+      return {
+        startDate: firstDayOfYear.toISOString().split('T')[0],
+        endDate: lastDayOfYear.toISOString().split('T')[0]
       };
     }
     default:
