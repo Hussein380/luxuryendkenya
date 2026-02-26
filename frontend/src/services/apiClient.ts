@@ -5,12 +5,12 @@
  * - Vercel (full-stack): /api (same origin)
  * - Separate backend: set VITE_API_URL to your backend URL
  */
-const getBaseUrl = (): string => {
+export const getBaseUrl = (): string => {
   // Explicit env var takes priority
   if (import.meta.env.VITE_API_URL) {
     return import.meta.env.VITE_API_URL;
   }
-  
+
   // Check if running in browser and on localhost
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname;
@@ -18,7 +18,7 @@ const getBaseUrl = (): string => {
       return 'http://localhost:5000/api';
     }
   }
-  
+
   // Production: use relative path (same origin on Vercel)
   return '/api';
 };

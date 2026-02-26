@@ -1,4 +1,4 @@
-import { apiRequest } from './apiClient';
+import { apiRequest, getBaseUrl } from './apiClient';
 
 export interface RevenueSummary {
   expectedRevenue: number;
@@ -65,7 +65,7 @@ export async function exportRevenueCSV(filters: RevenueFilters = {}): Promise<vo
   if (filters.endDate) params.append('endDate', filters.endDate);
 
   // Get the base URL from the API client
-  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  const baseUrl = getBaseUrl();
   const downloadUrl = `${baseUrl}/admin/revenue/export/csv?${params.toString()}`;
 
   // Get token from localStorage (using the correct key)
@@ -123,7 +123,7 @@ export async function exportRevenuePDF(filters: RevenueFilters = {}, includeDeta
   params.append('includeDetails', includeDetails.toString());
 
   // Get the base URL from the API client
-  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  const baseUrl = getBaseUrl();
   const downloadUrl = `${baseUrl}/admin/revenue/export/pdf?${params.toString()}`;
 
   // Get token from localStorage (using the correct key)

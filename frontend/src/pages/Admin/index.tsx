@@ -22,7 +22,8 @@ import {
   BarChart3,
   Calendar,
   Filter,
-  RefreshCcw
+  RefreshCcw,
+  Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatPrice } from '@/lib/currency';
@@ -86,6 +87,8 @@ export default function Admin() {
   // Revenue State
   const [revenueData, setRevenueData] = useState<RevenueResponse | null>(null);
   const [isLoadingRevenue, setIsLoadingRevenue] = useState(false);
+  const [isExportingCSV, setIsExportingCSV] = useState(false);
+  const [isExportingPDF, setIsExportingPDF] = useState(false);
   const [revenueStartDate, setRevenueStartDate] = useState('');
   const [revenueEndDate, setRevenueEndDate] = useState('');
   const [revenueGroupBy, setRevenueGroupBy] = useState<'day' | 'week' | 'month' | 'year'>('day');
@@ -175,35 +178,59 @@ export default function Admin() {
   };
 
   const handleExportCSV = async () => {
+    setIsExportingCSV(true);
     try {
       await exportRevenueCSV({
         startDate: revenueStartDate || undefined,
         endDate: revenueEndDate || undefined
       });
+      toast({ title: 'Download Started', description: 'Your CSV report is being downloaded.' });
     } catch (error) {
-      alert('Failed to export CSV. Please try again.');
+      toast({
+        variant: 'destructive',
+        title: 'Export Failed',
+        description: error instanceof Error ? error.message : 'Could not export CSV'
+      });
+    } finally {
+      setIsExportingCSV(false);
     }
   };
 
   const handleExportPDFSummary = async () => {
+    setIsExportingPDF(true);
     try {
       await exportRevenuePDF({
         startDate: revenueStartDate || undefined,
         endDate: revenueEndDate || undefined
-      }, false); // Summary only
+      }, false);
+      toast({ title: 'Download Started', description: 'Your PDF summary is being downloaded.' });
     } catch (error) {
-      alert('Failed to export PDF. Please try again.');
+      toast({
+        variant: 'destructive',
+        title: 'Export Failed',
+        description: error instanceof Error ? error.message : 'Could not export PDF'
+      });
+    } finally {
+      setIsExportingPDF(false);
     }
   };
 
   const handleExportPDFFull = async () => {
+    setIsExportingPDF(true);
     try {
       await exportRevenuePDF({
         startDate: revenueStartDate || undefined,
         endDate: revenueEndDate || undefined
-      }, true); // Full report with details
+      }, true);
+      toast({ title: 'Download Started', description: 'Your full PDF report is being downloaded.' });
     } catch (error) {
-      alert('Failed to export PDF. Please try again.');
+      toast({
+        variant: 'destructive',
+        title: 'Export Failed',
+        description: error instanceof Error ? error.message : 'Could not export PDF'
+      });
+    } finally {
+      setIsExportingPDF(false);
     }
   };
 
@@ -752,16 +779,31 @@ export default function Admin() {
                     <Filter className="w-4 h-4 mr-2" />
                     {isLoadingRevenue ? 'Loading...' : 'Apply'}
                   </Button>
-                  <Button variant="outline" onClick={handleExportCSV} className="flex-1 sm:flex-none">
-                    <Download className="w-4 h-4 mr-2" />
+                  <Button
+                    variant="outline"
+                    onClick={handleExportCSV}
+                    disabled={isExportingCSV}
+                    className="flex-1 sm:flex-none"
+                  >
+                    {isExportingCSV ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Download className="w-4 h-4 mr-2" />}
                     CSV
                   </Button>
-                  <Button variant="outline" onClick={handleExportPDFSummary} className="flex-1 sm:flex-none">
-                    <Download className="w-4 h-4 mr-2" />
+                  <Button
+                    variant="outline"
+                    onClick={handleExportPDFSummary}
+                    disabled={isExportingPDF}
+                    className="flex-1 sm:flex-none"
+                  >
+                    {isExportingPDF ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Download className="w-4 h-4 mr-2" />}
                     PDF Summary
                   </Button>
-                  <Button variant="outline" onClick={handleExportPDFFull} className="flex-1 sm:flex-none">
-                    <Download className="w-4 h-4 mr-2" />
+                  <Button
+                    variant="outline"
+                    onClick={handleExportPDFFull}
+                    disabled={isExportingPDF}
+                    className="flex-1 sm:flex-none"
+                  >
+                    {isExportingPDF ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Download className="w-4 h-4 mr-2" />}
                     PDF Full
                   </Button>
                 </div>
