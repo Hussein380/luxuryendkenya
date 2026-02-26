@@ -6,7 +6,9 @@ const logger = require('./utils/logger');
 const PORT = process.env.PORT || 5000;
 
 // Connect to Database
-connectDB();
+connectDB().catch(err => {
+    logger.error('Initial database connection failed. Server will continue but DB requests will fail.');
+});
 
 // Start Background Workers
 require('./workers/email.worker');

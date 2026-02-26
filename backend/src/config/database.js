@@ -10,6 +10,8 @@ const connectDB = async () => {
         return conn;
     } catch (error) {
         logger.error(`MongoDB Connection Error: ${error.message}`);
+        if (error.reason) logger.error(`Connection Reason: ${JSON.stringify(error.reason)}`);
+        throw error; // Rethrow to let calling code handle failure
     }
 };
 
