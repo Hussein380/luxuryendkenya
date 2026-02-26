@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, SlidersHorizontal, X } from 'lucide-react';
+import { Search, SlidersHorizontal, X, Calendar as CalendarIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { getCategories, getLocations } from '@/services/carService';
+import { DateTimePicker } from '@/components/ui/DateTimePicker';
 import type { CarFilters as CarFiltersType } from '@/services/carService';
 
 interface CarFiltersProps {
@@ -140,6 +141,28 @@ export function CarFilters({ filters, onFilterChange, totalResults }: CarFilters
             className="overflow-hidden"
           >
             <div className="bg-card rounded-xl border border-border p-4 space-y-6">
+              {/* Rental Dates */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium flex items-center gap-2">
+                    <CalendarIcon className="w-3 h-3" /> Pickup Date
+                  </Label>
+                  <DateTimePicker
+                    date={filters.pickupDate ? new Date(filters.pickupDate) : undefined}
+                    setDate={(date) => onFilterChange({ ...filters, pickupDate: date ? date.toISOString() : undefined })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium flex items-center gap-2">
+                    <CalendarIcon className="w-3 h-3" /> Return Date
+                  </Label>
+                  <DateTimePicker
+                    date={filters.returnDate ? new Date(filters.returnDate) : undefined}
+                    setDate={(date) => onFilterChange({ ...filters, returnDate: date ? date.toISOString() : undefined })}
+                    minDate={filters.pickupDate ? new Date(filters.pickupDate) : undefined}
+                  />
+                </div>
+              </div>
               {/* Categories */}
               <div>
                 <Label className="text-sm font-medium mb-3 block">Category</Label>

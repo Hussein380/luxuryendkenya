@@ -23,6 +23,7 @@ import {
   Calendar,
   Filter
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { formatPrice } from '@/lib/currency';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,29 +36,41 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Layout } from '@/components/common/Layout';
 import { LazyImage } from '@/components/common/LazyImage';
 import { Skeleton } from '@/components/common/Skeleton';
 import { getCars, deleteCar } from '@/services/carService';
-import { getBookings, updateBookingStatus, cancelBooking, startTrip, markAsOverdue, markNoShow } from '@/services/bookingService';
+import {
+  getBookings,
+  updateBookingStatus,
+  cancelBooking,
+  startTrip,
+  checkIn,
+  markAsOverdue,
+  markNoShow,
+  confirmPayment
+} from '@/services/bookingService';
 import { getRevenue, exportRevenueCSV, exportRevenuePDF, getQuickDateRange, type RevenueResponse } from '@/services/revenueService';
 import { AdminCarModal } from '@/components/admin/AdminCarModal';
 import { CheckInModal } from '@/components/admin/CheckInModal';
 import { AdminBookingDetailsModal } from '@/components/admin/AdminBookingDetailsModal';
 import type { Car as CarType, Booking } from '@/types';
 
-const statusConfig: Record<string, { label: string; color: string; icon: typeof Check }> = {
-  pending: { label: 'Pending Payment', color: 'bg-warning/10 text-warning', icon: Clock },
-  reserved: { label: 'Reserved', color: 'bg-blue-500/10 text-blue-500', icon: Clock },
-  confirmed: { label: 'Confirmed', color: 'bg-accent/10 text-accent', icon: Check },
-  paid: { label: 'Paid', color: 'bg-success/10 text-success', icon: Check },
-  active: { label: 'Active', color: 'bg-indigo-500/10 text-indigo-500', icon: TrendingUp },
-  overdue: { label: 'Overdue', color: 'bg-destructive/10 text-destructive', icon: Clock },
-  completed: { label: 'Completed', color: 'bg-muted text-muted-foreground', icon: Check },
-  cancelled: { label: 'Cancelled', color: 'bg-destructive/10 text-destructive', icon: X },
+import { AdminLayout } from '@/components/admin/AdminLayout';
+import { DashboardStats } from '@/components/admin/DashboardStats';
+
+const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
+  pending: { label: 'Pending Payment', color: 'bg-amber-500/10 text-amber-500 border-amber-500/20', icon: Clock },
+  reserved: { label: 'Reserved', color: 'bg-blue-500/10 text-blue-500 border-blue-500/20', icon: Clock },
+  confirmed: { label: 'Confirmed', color: 'bg-accent/10 text-accent border-accent/20', icon: Check },
+  paid: { label: 'Paid', color: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20', icon: Check },
+  active: { label: 'Active', color: 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20', icon: TrendingUp },
+  overdue: { label: 'Overdue', color: 'bg-destructive/10 text-destructive border-destructive/20', icon: Clock },
+  completed: { label: 'Completed', color: 'bg-muted text-muted-foreground border-muted-foreground/20', icon: Check },
+  cancelled: { label: 'Cancelled', color: 'bg-destructive/10 text-destructive border-destructive/20', icon: X },
 };
 
 export default function Admin() {
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [cars, setCars] = useState<CarType[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -112,6 +125,13 @@ export default function Admin() {
     loadData();
   }, []);
 
+  // Sync revenue loading with tab selection
+  useEffect(() => {
+    if (activeTab === 'revenue') {
+      loadRevenue();
+    }
+  }, [activeTab]);
+
   // Revenue Functions
   const loadRevenue = async () => {
     setIsLoadingRevenue(true);
@@ -131,7 +151,7 @@ export default function Admin() {
     const { startDate, endDate } = getQuickDateRange(range);
     setRevenueStartDate(startDate);
     setRevenueEndDate(endDate);
-    
+
     // Auto-select best grouping based on date range
     const groupByMap = {
       'today': 'day',
@@ -197,6 +217,7 @@ export default function Admin() {
   const handleConfirmBooking = async (id: string) => {
     const updated = await updateBookingStatus(id, 'confirmed');
     if (updated) {
+      if (selectedBooking && selectedBooking.id === id) setSelectedBooking(updated);
       loadData();
     }
   };
@@ -205,6 +226,10 @@ export default function Admin() {
     if (window.confirm('Are you sure you want to cancel this booking?')) {
       const success = await cancelBooking(id);
       if (success) {
+        if (selectedBooking && selectedBooking.id === id) {
+          // Update local status so modal reflects it
+          setSelectedBooking({ ...selectedBooking, status: 'cancelled' });
+        }
         loadData();
       }
     }
@@ -213,6 +238,21 @@ export default function Admin() {
   const handleStartTrip = async (id: string) => {
     const updated = await startTrip(id);
     if (updated) {
+      if (selectedBooking && selectedBooking.id === id) setSelectedBooking(updated);
+      loadData();
+    }
+  };
+
+  const handleMarkPaid = async (id: string) => {
+    const receipt = window.prompt('Enter M-Pesa Receipt Number (Manual Confirmation):', 'MANUAL-CONFIRM');
+    if (receipt === null) return; // Cancelled
+
+    const amountStr = window.prompt('Enter Paid Amount (Leave empty for total price):');
+    const amount = amountStr ? parseFloat(amountStr) : undefined;
+
+    const updated = await confirmPayment(id, receipt, amount);
+    if (updated) {
+      if (selectedBooking && selectedBooking.id === id) setSelectedBooking(updated);
       loadData();
     }
   };
@@ -245,32 +285,20 @@ export default function Admin() {
     }
   };
 
-  const stats = [
-    {
-      label: 'Total Cars',
-      value: carTotal,
-      icon: Car,
-      change: '+2 this month',
-    },
-    {
-      label: 'Active Bookings',
-      value: bookings.filter(b => b.status === 'confirmed' || b.status === 'paid').length,
-      icon: CalendarDays,
-      change: '+12% from last week',
-    },
-    {
-      label: 'Revenue',
-      value: formatPrice(bookings.filter(b => b.status === 'paid' || b.status === 'completed').reduce((sum, b) => sum + b.totalPrice, 0)),
-      icon: DollarSign,
-      change: '+8% from last month',
-    },
-    {
-      label: 'Customers',
-      value: new Set(bookings.map(b => b.customerEmail)).size,
-      icon: Users,
-      change: '+5 new customers',
-    },
-  ];
+  const handleResetStatus = async (id: string) => {
+    const updated = await updateBookingStatus(id, 'pending');
+    if (updated) {
+      if (selectedBooking && selectedBooking.id === id) setSelectedBooking(updated);
+      loadData();
+    }
+  };
+
+  const dashboardStats = {
+    carTotal,
+    activeBookings: bookings.filter(b => b.status === 'confirmed' || b.status === 'paid' || b.status === 'active').length,
+    totalRevenue: bookings.filter(b => b.status === 'paid' || b.status === 'completed').reduce((sum, b) => sum + b.totalPrice, 0),
+    customerCount: new Set(bookings.map(b => b.customerEmail)).size,
+  };
 
   const filteredCars = cars.filter(car =>
     car.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -284,74 +312,111 @@ export default function Admin() {
   );
 
   return (
-    <Layout>
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8"
-        >
+    <AdminLayout activeTab={activeTab} onTabChange={setActiveTab}>
+      <div className="space-y-8">
+        {/* Welcome Section */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="font-display text-3xl font-bold">Admin Dashboard</h1>
-            <p className="text-muted-foreground">Manage your fleet and bookings</p>
+            <h1 className="font-display text-4xl font-bold tracking-tight">Luxury Fleet Control</h1>
+            <p className="text-muted-foreground mt-1 text-lg">Oversee your premium vehicle operations</p>
           </div>
-          <Button
-            className="gradient-accent text-accent-foreground border-0"
-            onClick={handleAddCar}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add New Car
-          </Button>
-        </motion.div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {stats.map((stat, i) => (
-            <motion.div
-              key={stat.label}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1 }}
+          <div className="flex gap-2">
+            <Button
+              className="gradient-accent text-accent-foreground border-0 shadow-accent hover:scale-105 transition-transform"
+              onClick={handleAddCar}
             >
-              <Card className="p-4">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="w-10 h-10 rounded-lg gradient-accent flex items-center justify-center">
-                    <stat.icon className="w-5 h-5 text-accent-foreground" />
+              <Plus className="w-4 h-4 mr-2" />
+              Add New Car
+            </Button>
+          </div>
+        </div>
+
+        {/* Global Search */}
+        <div className="relative max-w-2xl">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+          <Input
+            placeholder="Search bookings, fleet, or customers..."
+            className="pl-12 h-14 bg-card/50 border-border/50 text-lg rounded-2xl shadow-sm focus:ring-accent"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
+          <TabsContent value="dashboard" className="space-y-8 m-0 outline-none">
+            <DashboardStats stats={dashboardStats} />
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <Card className="p-6 border-border/50 glass">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="font-display text-xl font-bold">Recent Bookings</h3>
+                  <Button variant="link" onClick={() => setActiveTab('bookings')} className="text-accent underline-offset-4">View All</Button>
+                </div>
+                {/* Simplified list for dashboard */}
+                <div className="space-y-4">
+                  {bookings.slice(0, 5).map(booking => (
+                    <div key={booking.id} className="flex items-center justify-between p-3 rounded-xl bg-secondary/30 hover:bg-secondary/50 transition-colors border border-border/10 cursor-pointer" onClick={() => handleViewDetails(booking)}>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0">
+                          <img src={booking.carImage} className="w-full h-full object-cover" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold">{booking.firstName} {booking.lastName}</p>
+                          <p className="text-[10px] uppercase text-accent tracking-widest font-bold">{booking.bookingId}</p>
+                          <p className="text-[10px] uppercase text-muted-foreground tracking-widest">{booking.carName}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-bold">{formatPrice(booking.totalPrice)}</p>
+                        <Badge variant="secondary" className={`${statusConfig[booking.status]?.color} text-[10px] px-1 py-0`}>
+                          {statusConfig[booking.status]?.label}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+
+              <Card className="p-6 border-border/50 glass">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="font-display text-xl font-bold">Active Fleet Status</h3>
+                  <Button variant="link" onClick={() => setActiveTab('cars')} className="text-accent underline-offset-4">Management</Button>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-4 rounded-2xl bg-success/5 border border-success/10 text-center">
+                    <p className="text-2xl font-bold text-success">{cars.filter(c => c.available).length}</p>
+                    <p className="text-xs text-muted-foreground uppercase font-semibold">Available</p>
+                  </div>
+                  <div className="p-4 rounded-2xl bg-destructive/5 border border-destructive/10 text-center">
+                    <p className="text-2xl font-bold text-destructive">{cars.filter(c => !c.available).length}</p>
+                    <p className="text-xs text-muted-foreground uppercase font-semibold">In Service</p>
                   </div>
                 </div>
-                <p className="font-display text-2xl font-bold">{stat.value}</p>
-                <p className="text-sm text-muted-foreground">{stat.label}</p>
-                <p className="text-xs text-success mt-1">{stat.change}</p>
+                <div className="mt-8">
+                  <p className="text-sm font-medium mb-4 text-muted-foreground">Fleet Utilization</p>
+                  <div className="h-4 w-full bg-secondary rounded-full overflow-hidden flex">
+                    <div
+                      className="h-full bg-accent"
+                      style={{ width: `${(cars.filter(c => !c.available).length / cars.length) * 100}%` }}
+                    />
+                  </div>
+                  <div className="flex justify-between mt-2 text-[10px] text-muted-foreground uppercase font-bold tracking-widest">
+                    <span>0%</span>
+                    <span>{Math.round((cars.filter(c => !c.available).length / (cars.length || 1)) * 100)}% Utilized</span>
+                    <span>100%</span>
+                  </div>
+                </div>
               </Card>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* Search */}
-        <div className="mb-6">
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-            <Input
-              placeholder="Search cars, bookings, customers..."
-              className="pl-10"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-        </div>
-
-        {/* Tabs */}
-        <Tabs defaultValue="bookings" className="space-y-6">
-          <TabsList className="grid w-full max-w-lg grid-cols-3">
-            <TabsTrigger value="bookings">Bookings</TabsTrigger>
-            <TabsTrigger value="cars">Cars</TabsTrigger>
-            <TabsTrigger value="revenue" onClick={loadRevenue}>Revenue</TabsTrigger>
-          </TabsList>
+            </div>
+          </TabsContent>
 
           {/* Bookings Tab */}
-          <TabsContent value="bookings">
-            <Card className="overflow-hidden">
+          <TabsContent value="bookings" className="m-0 outline-none">
+            <Card className="overflow-hidden glass border-border/50 shadow-xl">
+              <div className="p-6 border-b border-border/50">
+                <h3 className="font-display text-xl font-bold">Booking Ledger</h3>
+                <p className="text-sm text-muted-foreground">Detailed history of all vehicle rentals</p>
+              </div>
               <div className="overflow-x-auto sm:overflow-visible">
                 <table className="w-full table-fixed sm:table-auto">
                   <thead>
@@ -387,7 +452,8 @@ export default function Admin() {
                             key={booking.id}
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
-                            className="border-b border-border hover:bg-secondary/50 transition-colors"
+                            className="border-b border-border/50 hover:bg-accent/5 transition-colors cursor-pointer group"
+                            onClick={() => handleViewDetails(booking)}
                           >
                             <td className="p-2 sm:p-4">
                               <div className="flex items-center gap-2 sm:gap-3">
@@ -398,7 +464,7 @@ export default function Admin() {
                                   wrapperClassName="flex-shrink-0"
                                 />
                                 <div className="min-w-0">
-                                  <p className="font-medium text-sm truncate">{booking.id}</p>
+                                  <p className="font-medium text-sm truncate">{booking.bookingId}</p>
                                   <p className="text-xs sm:text-sm text-muted-foreground truncate">{booking.carName}</p>
                                 </div>
                               </div>
@@ -415,7 +481,7 @@ export default function Admin() {
                               <p className="text-xs text-muted-foreground">{booking.totalDays} days</p>
                             </td>
                             <td className="p-2 sm:p-4">
-                              <Badge className={`${statusInfo.color} text-[10px] sm:text-sm px-1.5 py-0.5 sm:px-2.5 sm:py-0.5 whitespace-nowrap`} variant="secondary">
+                              <Badge className={cn(statusInfo.color, "text-[10px] sm:text-xs px-2 py-0.5 border whitespace-nowrap shadow-sm")} variant="outline">
                                 {statusInfo.label}
                               </Badge>
                             </td>
@@ -478,12 +544,15 @@ export default function Admin() {
                   </tbody>
                 </table>
               </div>
+              <div className="p-4 border-t border-border/50 bg-secondary/10 flex justify-between items-center">
+                <p className="text-xs text-muted-foreground">Showing {filteredBookings.length} entries</p>
+              </div>
             </Card>
           </TabsContent>
 
           {/* Cars Tab */}
-          <TabsContent value="cars">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <TabsContent value="cars" className="m-0 outline-none">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {isLoading
                 ? Array.from({ length: 6 }).map((_, i) => (
                   <Card key={i} className="p-4">
@@ -499,12 +568,12 @@ export default function Admin() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.05 }}
                   >
-                    <Card className="overflow-hidden">
-                      <div className="relative h-40">
+                    <Card className="overflow-hidden glass border-border/50 hover:shadow-accent/10 transition-all duration-500 group">
+                      <div className="relative h-48 overflow-hidden">
                         <LazyImage
                           src={car.imageUrl}
                           alt={car.name}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                           wrapperClassName="h-full"
                         />
                         <div className="absolute top-2 right-2">
@@ -566,46 +635,33 @@ export default function Admin() {
           </TabsContent>
 
           {/* Revenue Tab */}
-          <TabsContent value="revenue">
-            <Card className="p-6">
+          <TabsContent value="revenue" className="m-0 outline-none">
+            <Card className="p-8 glass border-border/50 shadow-2xl relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-1 gradient-accent"></div>
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h3 className="font-display text-2xl font-bold">Financial Analytics</h3>
+                  <p className="text-sm text-muted-foreground">Comprehensive revenue and collection overview</p>
+                </div>
+                <BarChart3 className="w-8 h-8 text-accent opacity-20" />
+              </div>
               {/* Revenue Summary Cards */}
               {revenueData?.summary && (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-8">
-                  <Card className="p-4 bg-blue-50 border-blue-200">
-                    <p className="text-sm text-blue-600 mb-1">Expected Revenue</p>
-                    <p className="text-xs text-blue-400 mb-2">(Projected)</p>
-                    <p className="font-display text-xl font-bold text-blue-700">
-                      {formatPrice(revenueData.summary.expectedRevenue)}
-                    </p>
-                  </Card>
-                  <Card className="p-4 bg-green-50 border-green-200">
-                    <p className="text-sm text-green-600 mb-1">Collected Revenue</p>
-                    <p className="text-xs text-green-400 mb-2">(Actual - Money in hand)</p>
-                    <p className="font-display text-xl font-bold text-green-700">
-                      {formatPrice(revenueData.summary.collectedRevenue)}
-                    </p>
-                  </Card>
-                  <Card className="p-4 bg-yellow-50 border-yellow-200">
-                    <p className="text-sm text-yellow-600 mb-1">Pending Collection</p>
-                    <p className="text-xs text-yellow-400 mb-2">(Outstanding)</p>
-                    <p className="font-display text-xl font-bold text-yellow-700">
-                      {formatPrice(revenueData.summary.pendingCollection)}
-                    </p>
-                  </Card>
-                  <Card className="p-4 bg-red-50 border-red-200">
-                    <p className="text-sm text-red-600 mb-1">Lost Revenue</p>
-                    <p className="text-xs text-red-400 mb-2">(Cancelled bookings)</p>
-                    <p className="font-display text-xl font-bold text-red-700">
-                      {formatPrice(revenueData.summary.lostRevenue)}
-                    </p>
-                  </Card>
-                  <Card className="p-4 bg-purple-50 border-purple-200">
-                    <p className="text-sm text-purple-600 mb-1">Collection Rate</p>
-                    <p className="text-xs text-purple-400 mb-2">(% collected)</p>
-                    <p className="font-display text-xl font-bold text-purple-700">
-                      {revenueData.summary.collectionRate}%
-                    </p>
-                  </Card>
+                <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+                  {[
+                    { label: 'Expected Revenue', value: revenueData.summary.expectedRevenue, color: 'text-blue-500', bg: 'bg-blue-500/5', border: 'border-blue-500/10' },
+                    { label: 'Collected Revenue', value: revenueData.summary.collectedRevenue, color: 'text-emerald-500', bg: 'bg-emerald-500/5', border: 'border-emerald-500/10' },
+                    { label: 'Pending Collection', value: revenueData.summary.pendingCollection, color: 'text-amber-500', bg: 'bg-amber-500/5', border: 'border-amber-500/10' },
+                    { label: 'Lost Revenue', value: revenueData.summary.lostRevenue, color: 'text-destructive', bg: 'bg-destructive/5', border: 'border-destructive/10' },
+                    { label: 'Collection Rate', value: `${revenueData.summary.collectionRate}%`, color: 'text-accent', bg: 'bg-accent/5', border: 'border-accent/10' },
+                  ].map((stat) => (
+                    <Card key={stat.label} className={cn("p-4 glass", stat.bg, stat.border)}>
+                      <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-1">{stat.label}</p>
+                      <p className={cn("font-display text-xl font-bold", stat.color)}>
+                        {typeof stat.value === 'number' ? formatPrice(stat.value) : stat.value}
+                      </p>
+                    </Card>
+                  ))}
                 </div>
               )}
 
@@ -630,7 +686,7 @@ export default function Admin() {
                     />
                   </div>
                 </div>
-                
+
                 {/* Action Buttons */}
                 <div className="flex flex-wrap gap-2">
                   <Button onClick={loadRevenue} disabled={isLoadingRevenue} className="flex-1 sm:flex-none">
@@ -656,37 +712,37 @@ export default function Admin() {
               <div className="mb-2">
                 <label className="text-sm text-muted-foreground mb-2 block">Select Time Period</label>
                 <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
-                  <Button 
-                    variant={revenueStartDate === getQuickDateRange('today').startDate ? 'default' : 'outline'} 
-                    size="sm" 
-                    onClick={() => handleQuickDateFilter('today')} 
+                  <Button
+                    variant={revenueStartDate === getQuickDateRange('today').startDate ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => handleQuickDateFilter('today')}
                     className="w-full sm:w-auto"
                   >
                     <Calendar className="w-4 h-4 mr-1" />
                     Today
                   </Button>
-                  <Button 
-                    variant={revenueStartDate === getQuickDateRange('week').startDate ? 'default' : 'outline'} 
-                    size="sm" 
-                    onClick={() => handleQuickDateFilter('week')} 
+                  <Button
+                    variant={revenueStartDate === getQuickDateRange('week').startDate ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => handleQuickDateFilter('week')}
                     className="w-full sm:w-auto"
                   >
                     <Calendar className="w-4 h-4 mr-1" />
                     This Week
                   </Button>
-                  <Button 
-                    variant={revenueStartDate === getQuickDateRange('month').startDate ? 'default' : 'outline'} 
-                    size="sm" 
-                    onClick={() => handleQuickDateFilter('month')} 
+                  <Button
+                    variant={revenueStartDate === getQuickDateRange('month').startDate ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => handleQuickDateFilter('month')}
                     className="w-full sm:w-auto"
                   >
                     <Calendar className="w-4 h-4 mr-1" />
                     This Month
-                </Button>
-                  <Button 
-                    variant={revenueStartDate === getQuickDateRange('year').startDate ? 'default' : 'outline'} 
-                    size="sm" 
-                    onClick={() => handleQuickDateFilter('year')} 
+                  </Button>
+                  <Button
+                    variant={revenueStartDate === getQuickDateRange('year').startDate ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => handleQuickDateFilter('year')}
                     className="w-full sm:w-auto"
                   >
                     <Calendar className="w-4 h-4 mr-1" />
@@ -697,39 +753,41 @@ export default function Admin() {
 
               {/* Revenue Table */}
               {isLoadingRevenue ? (
-                <div className="space-y-2">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Skeleton key={i} className="h-12 w-full" />
+                <div className="space-y-4">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <Skeleton key={i} className="h-14 w-full rounded-xl" />
                   ))}
                 </div>
               ) : revenueData?.data && revenueData.data.length > 0 ? (
                 <div className="overflow-x-auto sm:overflow-visible -mx-2 sm:mx-0">
-                  <table className="w-full sm:min-w-[600px] table-fixed sm:table-auto">
-                    <thead>
-                      <tr className="border-b border-border">
-                        <th className="text-left p-2 sm:p-4 font-medium text-muted-foreground text-xs sm:text-base w-[22%] sm:w-auto">Period</th>
-                        <th className="text-left p-2 sm:p-4 font-medium text-muted-foreground text-xs sm:text-base w-[18%] sm:w-auto">Expected</th>
-                        <th className="text-left p-2 sm:p-4 font-medium text-muted-foreground text-xs sm:text-base w-[18%] sm:w-auto">Collected</th>
-                        <th className="text-left p-2 sm:p-4 font-medium text-muted-foreground text-xs sm:text-base w-[18%] sm:w-auto hidden sm:table-cell">Pending</th>
-                        <th className="text-left p-2 sm:p-4 font-medium text-muted-foreground text-xs sm:text-base w-[12%] sm:w-auto">Lost</th>
-                        <th className="text-left p-2 sm:p-4 font-medium text-muted-foreground text-xs sm:text-base w-[12%] sm:w-auto">#</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {revenueData.data.map((row, index) => (
-                        <tr key={index} className="border-b border-border hover:bg-secondary/50">
-                          <td className="p-2 sm:p-4 font-medium text-xs sm:text-base">{row.period}</td>
-                          <td className="p-2 sm:p-4 text-blue-600 text-xs sm:text-base">{formatPrice(row.expectedRevenue)}</td>
-                          <td className="p-2 sm:p-4 text-green-600 text-xs sm:text-base">{formatPrice(row.collectedRevenue)}</td>
-                          <td className="p-2 sm:p-4 text-yellow-600 text-xs sm:text-base hidden sm:table-cell">{formatPrice(row.pendingCollection)}</td>
-                          <td className="p-2 sm:p-4 text-red-600 text-xs sm:text-base">{formatPrice(row.lostRevenue)}</td>
-                          <td className="p-2 sm:p-4">
-                            <span className="text-xs sm:text-sm">{row.bookingCount}</span>
-                          </td>
+                  <div className="rounded-2xl border border-border/50 overflow-hidden bg-background/30 backdrop-blur-sm">
+                    <table className="w-full sm:min-w-[600px] table-fixed sm:table-auto">
+                      <thead>
+                        <tr className="bg-secondary/20 border-b border-border/50">
+                          <th className="text-left p-4 font-bold text-muted-foreground text-xs uppercase tracking-widest w-[22%] sm:w-auto">Period</th>
+                          <th className="text-left p-4 font-bold text-muted-foreground text-xs uppercase tracking-widest w-[18%] sm:w-auto">Expected</th>
+                          <th className="text-left p-4 font-bold text-muted-foreground text-xs uppercase tracking-widest w-[18%] sm:w-auto">Collected</th>
+                          <th className="text-left p-4 font-bold text-muted-foreground text-xs uppercase tracking-widest w-[18%] sm:w-auto hidden sm:table-cell">Pending</th>
+                          <th className="text-left p-4 font-bold text-muted-foreground text-xs uppercase tracking-widest w-[12%] sm:w-auto">Lost</th>
+                          <th className="text-left p-4 font-bold text-muted-foreground text-xs uppercase tracking-widest w-[12%] sm:w-auto">#</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {revenueData.data.map((row, index) => (
+                          <tr key={index} className="border-b border-border/50 hover:bg-accent/5 transition-colors">
+                            <td className="p-4 font-medium text-sm sm:text-base">{row.period}</td>
+                            <td className="p-4 text-blue-500 font-semibold text-sm sm:text-base">{formatPrice(row.expectedRevenue)}</td>
+                            <td className="p-4 text-emerald-500 font-semibold text-sm sm:text-base">{formatPrice(row.collectedRevenue)}</td>
+                            <td className="p-4 text-amber-500 font-semibold text-sm sm:text-base hidden sm:table-cell">{formatPrice(row.pendingCollection)}</td>
+                            <td className="p-4 text-destructive font-semibold text-sm sm:text-base">{formatPrice(row.lostRevenue)}</td>
+                            <td className="p-4">
+                              <Badge variant="secondary" className="bg-secondary/50 text-[10px] font-bold">{row.bookingCount}</Badge>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               ) : (
                 <div className="text-center py-12 text-muted-foreground">
@@ -738,6 +796,22 @@ export default function Admin() {
                   <p className="text-sm mt-2">Select a date range and click Apply to view revenue</p>
                 </div>
               )}
+            </Card>
+          </TabsContent>
+
+          {/* Settings Tab */}
+          <TabsContent value="settings" className="m-0 outline-none">
+            <Card className="p-12 glass border-border/50 text-center space-y-6">
+              <div className="w-20 h-20 rounded-full gradient-accent flex items-center justify-center mx-auto shadow-accent/20">
+                <Filter className="w-10 h-10 text-accent-foreground" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="font-display text-3xl font-bold italic tracking-tight text-gradient">Admin Settings</h3>
+                <p className="text-muted-foreground max-w-md mx-auto">Configure your luxury rental platform's global parameters, payment gateways, and administrative access controls.</p>
+              </div>
+              <div className="pt-4">
+                <Badge variant="outline" className="px-4 py-1 text-accent border-accent/30 bg-accent/5">Coming Soon to Elite Tier</Badge>
+              </div>
             </Card>
           </TabsContent>
         </Tabs>
@@ -753,7 +827,13 @@ export default function Admin() {
           booking={selectedBooking}
           isOpen={isCheckInModalOpen}
           onClose={() => setIsCheckInModalOpen(false)}
-          onSuccess={loadData}
+          onSuccess={async () => {
+            if (selectedBooking) {
+              const updated = await getBookingById(selectedBooking.id);
+              if (updated) setSelectedBooking(updated);
+            }
+            loadData();
+          }}
         />
 
         <AdminBookingDetailsModal
@@ -763,9 +843,11 @@ export default function Admin() {
           onConfirm={handleConfirmBooking}
           onStartTrip={handleStartTrip}
           onCancel={handleCancelBooking}
-          onMarkPaid={handleConfirmBooking}
+          onMarkPaid={handleMarkPaid}
+          onResetStatus={handleResetStatus}
+          onCheckIn={handleCheckIn}
         />
       </div>
-    </Layout>
+    </AdminLayout>
   );
 }

@@ -12,7 +12,9 @@ import {
     AlertCircle,
     ExternalLink,
     TrendingUp,
-    Car as CarIcon
+    Car as CarIcon,
+    RefreshCcw,
+    Undo2
 } from 'lucide-react';
 import {
     Dialog,
@@ -34,6 +36,8 @@ interface AdminBookingDetailsModalProps {
     onStartTrip: (id: string) => void;
     onCancel: (id: string) => void;
     onMarkPaid: (id: string) => void;
+    onResetStatus?: (id: string) => void;
+    onCheckIn?: (booking: Booking) => void;
 }
 
 const statusConfig: Record<string, { label: string; color: string }> = {
@@ -54,7 +58,9 @@ export function AdminBookingDetailsModal({
     onConfirm,
     onStartTrip,
     onCancel,
-    onMarkPaid
+    onMarkPaid,
+    onResetStatus,
+    onCheckIn
 }: AdminBookingDetailsModalProps) {
     if (!booking) return null;
 
@@ -70,7 +76,7 @@ export function AdminBookingDetailsModal({
                             {status.label}
                         </Badge>
                     </div>
-                    <p className="text-muted-foreground">ID: {booking.id}</p>
+                    <p className="text-muted-foreground">ID: {booking.bookingId}</p>
                 </DialogHeader>
 
                 <div className="grid md:grid-cols-2 gap-6 mt-4">
@@ -194,29 +200,57 @@ export function AdminBookingDetailsModal({
 
                 {/* Action Footer */}
                 <div className="flex flex-wrap gap-3 mt-8 pt-6 border-t justify-end">
-                    <Button variant="outline" onClick={onClose}>Close</Button>
+                    <Button variant="outline" onClick={onClose} className="mr-auto">Close</Button>
 
-                    {(booking.status === 'pending' || booking.status === 'reserved') && (
-                        <Button className="gradient-accent border-0" onClick={() => onConfirm(booking.id)}>
-                            <CheckCircle2 className="w-4 h-4 mr-2" />
-                            Confirm Booking
+                    {/* ALWAYS SHOW RESET if not pending/reserved - allows undoing mistake */}
+                    {onResetStatus && booking.status !== 'pending' && booking.status !== 'reserved' && (
+                        <Button
+                            variant="outline"
+                            className="bg-orange-500/10 text-orange-500 border-orange-500/20 hover:bg-orange-500/20"
+                            onClick={() => {
+                                if (window.confirm('Reset this booking to Pending status? This will unlock the car availability if it was blocked.')) {
+                                    onResetStatus(booking.id);
+                                }
+                            }}
+                        >
+                            <Undo2 className="w-4 h-4 mr-2" />
+                            Reset to Pending
                         </Button>
                     )}
 
-                    {booking.status === 'confirmed' && (
+                    {/* Primary Actions based on next logical steps, but slightly more open */}
+                    {(booking.status === 'pending' || booking.status === 'reserved' || booking.status === 'cancelled') && (
+                        <Button className="gradient-accent border-0" onClick={() => onConfirm(booking.id)}>
+                            <CheckCircle2 className="w-4 h-4 mr-2" />
+                            {booking.status === 'cancelled' ? 'Restore & Confirm' : 'Confirm Booking'}
+                        </Button>
+                    )}
+
+                    {/* Mark as Paid - useful for any upcoming/active trip */}
+                    {(booking.status === 'confirmed' || booking.status === 'pending' || booking.status === 'active') && (
                         <Button variant="outline" className="text-success border-success/30 hover:bg-success/10" onClick={() => onMarkPaid(booking.id)}>
                             <CreditCard className="w-4 h-4 mr-2" />
                             Mark as Paid
                         </Button>
                     )}
 
-                    {booking.status === 'paid' && (
+                    {/* Checkout - allow if confirmed or paid */}
+                    {(booking.status === 'paid' || booking.status === 'confirmed') && (
                         <Button className="bg-indigo-600 hover:bg-indigo-700 text-white" onClick={() => onStartTrip(booking.id)}>
                             <TrendingUp className="w-4 h-4 mr-2" />
                             Checkout (Start Trip)
                         </Button>
                     )}
 
+                    {/* Check-in - show if active or overdue */}
+                    {(booking.status === 'active' || booking.status === 'overdue') && onCheckIn && (
+                        <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => onCheckIn(booking)}>
+                            <RefreshCcw className="w-4 h-4 mr-2" />
+                            Check-in (Returns)
+                        </Button>
+                    )}
+
+                    {/* Cancel - available for almost any state except end states */}
                     {booking.status !== 'completed' && booking.status !== 'cancelled' && (
                         <Button variant="ghost" className="text-destructive hover:bg-destructive/10" onClick={() => onCancel(booking.id)}>
                             <X className="w-4 h-4 mr-2" />

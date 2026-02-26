@@ -176,7 +176,7 @@ Date: ${transferDetails.date || 'Not specified'}`;
                     size="lg"
                     className="w-full gradient-accent text-accent-foreground border-0 shadow-accent h-14 text-lg font-bold transition-transform hover:scale-[1.01] active:scale-[0.99]"
                   >
-                    <Link to="/cars">
+                    <Link to={`/cars?pickupDate=${hireDetails.pickupDate}&returnDate=${hireDetails.returnDate}&location=${encodeURIComponent(hireDetails.location)}`}>
                       <Search className="w-5 h-5 mr-3" />
                       Search Available Cars
                     </Link>
@@ -339,7 +339,7 @@ Date: ${transferDetails.date || 'Not specified'}`;
                             size="lg"
                             className="w-full gradient-accent h-14 text-base sm:text-lg font-bold shadow-accent rounded-xl"
                           >
-                            <Link to="/cars">
+                            <Link to={`/cars?pickupDate=${hireDetails.pickupDate}&returnDate=${hireDetails.returnDate}&location=${encodeURIComponent(hireDetails.location)}`}>
                               <Search className="w-5 h-5 mr-3" />
                               Search Available Cars
                             </Link>

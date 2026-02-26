@@ -20,9 +20,16 @@ export default function Cars() {
     // Initialize filters from URL params
     const category = searchParams.get('category');
     const search = searchParams.get('search');
+    const pickupDate = searchParams.get('pickupDate');
+    const returnDate = searchParams.get('returnDate');
+    const location = searchParams.get('location');
+
     const initialFilters: CarFiltersType = {};
     if (category) initialFilters.category = category;
     if (search) initialFilters.search = search;
+    if (pickupDate) initialFilters.pickupDate = pickupDate;
+    if (returnDate) initialFilters.returnDate = returnDate;
+    if (location) initialFilters.location = location;
     return initialFilters;
   });
 
@@ -64,6 +71,9 @@ export default function Cars() {
     const params = new URLSearchParams();
     if (newFilters.category) params.set('category', newFilters.category);
     if (newFilters.search) params.set('search', newFilters.search);
+    if (newFilters.pickupDate) params.set('pickupDate', newFilters.pickupDate);
+    if (newFilters.returnDate) params.set('returnDate', newFilters.returnDate);
+    if (newFilters.location) params.set('location', newFilters.location);
     setSearchParams(params);
   };
 

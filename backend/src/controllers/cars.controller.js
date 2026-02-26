@@ -2,6 +2,7 @@ const Car = require('../models/Car');
 const { sendSuccess, sendError } = require('../utils/response');
 const { NAIROBI_LOCATIONS } = require('../config/locations.config');
 const { clearCarCache } = require('../config/redis.config');
+const Booking = require('../models/Booking');
 
 // @desc    Get all cars with filters/search
 // @route   GET /api/cars
@@ -54,28 +55,49 @@ exports.getCars = async (req, res) => {
         // Executed query
         let cars = await mongooseQuery;
 
-        // AUTOMATION: For unavailable cars, find their next available date
-        const Booking = require('../models/Booking');
+        // AUTOMATION & FILTERING: Handle date-based availability
+        const { pickupDate, returnDate } = req.query;
+
+        const filteredCars = [];
         const now = new Date();
 
-        cars = await Promise.all(cars.map(async (car) => {
+        for (let car of cars) {
             const carObj = car.toObject();
-            if (!car.available) {
-                const occupationBooking = await Booking.findOne({
-                    car: car._id,
-                    status: { $in: ['confirmed', 'paid', 'active', 'overdue'] }
-                }).sort('-status returnDate');
 
-                if (occupationBooking) {
-                    carObj.nextAvailableAt = occupationBooking.returnDate;
+            // 1. Get all active/confirmed bookings for this car that might overlap
+            const existingBookings = await Booking.find({
+                car: car._id,
+                status: { $in: ['confirmed', 'paid', 'active', 'reserved', 'pending'] },
+                $or: [
+                    { pickupDate: { $lte: new Date(returnDate || now) }, returnDate: { $gte: new Date(pickupDate || now) } }
+                ]
+            });
+
+            // 2. If user provided dates and there's an overlap, skip this car IF they specifically asked for available cars
+            if (pickupDate && returnDate && existingBookings.length > 0 && req.query.available === 'true') {
+                continue;
+            }
+
+            // 3. Mark as unavailable in response if it has an overlap right now or for requested dates
+            if (existingBookings.length > 0) {
+                carObj.available = false;
+                // Find the latest return date to show "Returns on..."
+                const latestBooking = await Booking.findOne({
+                    car: car._id,
+                    status: { $in: ['confirmed', 'paid', 'active'] }
+                }).sort('-returnDate');
+
+                if (latestBooking) {
+                    carObj.nextAvailableAt = latestBooking.returnDate;
                 }
             }
-            return carObj;
-        }));
+
+            filteredCars.push(carObj);
+        }
 
         sendSuccess(res, {
-            cars,
-            total,
+            cars: filteredCars,
+            total: filteredCars.length,
             page,
             pages: Math.ceil(total / limit)
         });

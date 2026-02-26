@@ -19,6 +19,8 @@ export interface CarFilters {
   seats?: number;
   available?: boolean;
   search?: string;
+  pickupDate?: string;
+  returnDate?: string;
   page?: number;
   limit?: number;
   sort?: string;

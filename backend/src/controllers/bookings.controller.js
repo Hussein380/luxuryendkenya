@@ -6,6 +6,7 @@ const { sendSuccess, sendError } = require('../utils/response');
 const { addEmailJob } = require('../services/queue.service');
 const mpesaService = require('../services/mpesa.service');
 const logger = require('../utils/logger');
+const { clearCarCache } = require('../config/redis.config');
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
 
@@ -46,7 +47,20 @@ exports.createBooking = async (req, res) => {
             // 3. Check Availability (double-check after acquiring lock)
             const isAvailable = await bookingService.checkCarAvailability(carId, new Date(pickupDate), new Date(returnDate));
             if (!isAvailable) {
-                return sendError(res, 'Car is not available for the selected dates', 400);
+                return sendError(res, 'Car is already booked for these dates. Please select different dates or another car.', 400);
+            }
+
+            // Also check for any 'confirmed', 'paid', or 'active' bookings that overlap
+            const existingOverlap = await Booking.findOne({
+                car: carId,
+                status: { $in: ['confirmed', 'paid', 'active', 'reserved'] },
+                $or: [
+                    { pickupDate: { $lte: new Date(returnDate) }, returnDate: { $gte: new Date(pickupDate) } }
+                ]
+            });
+
+            if (existingOverlap) {
+                return sendError(res, 'This vehicle was just booked by someone else for these dates.', 400);
             }
 
             // 3. Calculate Pricing
@@ -220,6 +234,19 @@ exports.updateBookingStatus = async (req, res) => {
                 totalPrice: booking.totalPrice,
                 paymentDetails: booking.paymentDetails?.mpesaReceiptNumber ? booking.paymentDetails : null
             });
+
+            // AUTOMATION: If this booking is for TODAY/NOW, mark car as unavailable
+            const now = new Date();
+            if (now >= booking.pickupDate && now <= booking.returnDate) {
+                await Car.findByIdAndUpdate(booking.car, { available: false });
+                await clearCarCache();
+            }
+        }
+
+        // AUTOMATION: If reset to pending, reserved, cancelled or completed, release car
+        if (['pending', 'reserved', 'cancelled', 'completed'].includes(status)) {
+            await Car.findByIdAndUpdate(booking.car, { available: true });
+            await clearCarCache();
         }
 
         sendSuccess(res, booking, `Booking status updated to ${status}`);
@@ -275,7 +302,6 @@ exports.handleMpesaCallback = async (req, res) => {
                 await Car.findByIdAndUpdate(booking.car, { available: false });
 
                 // CLEAR CACHE: Car availability changed
-                const { clearCarCache } = require('../config/redis.config');
                 await clearCarCache();
             }
 
@@ -445,8 +471,8 @@ exports.startTrip = async (req, res) => {
         const booking = await Booking.findById(req.params.id);
         if (!booking) return sendError(res, 'Booking not found', 404);
 
-        if (booking.status !== 'paid') {
-            return sendError(res, 'Booking must be paid before starting trip', 400);
+        if (!['paid', 'confirmed'].includes(booking.status)) {
+            return sendError(res, 'Booking must be paid or confirmed before starting trip', 400);
         }
 
         booking.status = 'active';

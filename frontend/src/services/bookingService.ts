@@ -194,6 +194,24 @@ export async function pollBookingStatus(bookingId: string): Promise<string> {
 }
 
 /**
+ * Manually confirm payment (Admin only)
+ */
+export async function confirmPayment(
+  id: string,
+  mpesaReceiptNumber?: string,
+  amount?: number
+): Promise<Booking | null> {
+  const response = await apiRequest<any>(`/bookings/${id}/confirm-payment`, {
+    method: 'POST',
+    body: JSON.stringify({ mpesaReceiptNumber, amount }),
+  });
+  if (response.success && response.data) {
+    return mapBooking(response.data);
+  }
+  return null;
+}
+
+/**
  * Start trip (Admin only)
  */
 export async function startTrip(id: string): Promise<Booking | null> {

@@ -44,17 +44,7 @@ export function CarCard({ car, index = 0 }: CarCardProps) {
               {car.available ? (
                 <Badge className="bg-success text-success-foreground border-0 shadow-sm">Available</Badge>
               ) : (
-                <Badge variant="secondary" className="shadow-sm flex flex-col items-start py-1 h-auto">
-                  <span>Unavailable</span>
-                  {car.nextAvailableAt && (
-                    <span className="text-[10px] opacity-80 leading-tight">
-                      {new Date(car.nextAvailableAt) < new Date()
-                        ? 'Awaiting Return (Late)'
-                        : `Available: ${new Date(car.nextAvailableAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short', hour12: true })}`
-                      }
-                    </span>
-                  )}
-                </Badge>
+                <Badge variant="destructive" className="shadow-sm border-0">Unavailable</Badge>
               )}
             </div>
 
@@ -99,11 +89,43 @@ export function CarCard({ car, index = 0 }: CarCardProps) {
               </div>
             </div>
 
+            {/* Availability Detail */}
+            {!car.available && (
+              <div className="bg-destructive/5 rounded-lg p-3 border border-destructive/10">
+                <div className="flex items-center gap-2 text-destructive">
+                  <div className="w-2 h-2 rounded-full bg-destructive animate-pulse" />
+                  <span className="text-xs font-bold uppercase tracking-wider">Currently Out on Trip</span>
+                </div>
+                {car.nextAvailableAt && (
+                  <div className="mt-2 flex flex-col">
+                    <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">Expected back</span>
+                    <span className="text-sm font-semibold text-foreground">
+                      {new Date(car.nextAvailableAt).toLocaleString([], {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                        hour: 'numeric',
+                        minute: '2-digit',
+                        hour12: true
+                      })}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Price & CTA */}
             <div className="flex items-center justify-between pt-2 border-t border-border/50">
-              <div>
-                <span className="text-2xl font-display font-bold">{formatPrice(car.pricePerDay)}</span>
-                <span className="text-sm text-muted-foreground">/day</span>
+              <div className="flex flex-col">
+                <div>
+                  <span className="text-2xl font-display font-bold">{formatPrice(car.pricePerDay)}</span>
+                  <span className="text-sm text-muted-foreground">/day</span>
+                </div>
+                {!car.available && car.nextAvailableAt && (
+                  <span className="text-[10px] font-bold text-destructive/80 mt-0.5">
+                    Expected back: {new Date(car.nextAvailableAt).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}
+                  </span>
+                )}
               </div>
               <Button
                 size="sm"
