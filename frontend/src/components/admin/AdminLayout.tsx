@@ -10,6 +10,7 @@ import {
     DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { AIChatWidget } from '@/components/ai/AIChatWidget';
+import { useAuth } from '@/context/AuthContext';
 
 interface AdminLayoutProps {
     children: ReactNode;
@@ -18,6 +19,7 @@ interface AdminLayoutProps {
 }
 
 export function AdminLayout({ children, activeTab, onTabChange }: AdminLayoutProps) {
+    const { logout } = useAuth();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     return (
@@ -106,7 +108,7 @@ export function AdminLayout({ children, activeTab, onTabChange }: AdminLayoutPro
                                     <User className="w-4 h-4 mr-2" />
                                     My Profile
                                 </DropdownMenuItem>
-                                <DropdownMenuItem className="text-destructive">
+                                <DropdownMenuItem className="text-destructive" onClick={logout}>
                                     <LogOut className="w-4 h-4 mr-2" />
                                     Sign Out
                                 </DropdownMenuItem>

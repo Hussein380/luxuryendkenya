@@ -100,7 +100,7 @@ export default function Admin() {
   const [isCheckInModalOpen, setIsCheckInModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
-  const loadData = async () => {
+  const loadData = async (refreshRevenue = false) => {
     setIsLoading(true);
     try {
       const [carsData, bookingsData] = await Promise.all([
@@ -111,6 +111,10 @@ export default function Admin() {
       setCarTotal(carsData.total);
       setCarPage(1);
       setBookings(bookingsData.bookings);
+
+      if (refreshRevenue || activeTab === 'revenue') {
+        await loadRevenue();
+      }
     } finally {
       setIsLoading(false);
     }
@@ -248,7 +252,7 @@ export default function Admin() {
     if (window.confirm('Are you sure you want to delete this car?')) {
       const success = await deleteCar(id);
       if (success) {
-        loadData();
+        loadData(true);
       }
     }
   };
@@ -272,7 +276,7 @@ export default function Admin() {
         if (selectedBooking && selectedBooking.id === id) {
           setSelectedBooking({ ...selectedBooking, status: 'cancelled' });
         }
-        loadData();
+        loadData(true);
       } else {
         toast({ title: 'Cancellation Failed', description: 'Could not cancel booking.', variant: 'destructive' });
       }
@@ -934,7 +938,7 @@ export default function Admin() {
               const updated = await getBookingById(selectedBooking.id);
               if (updated) setSelectedBooking(updated);
             }
-            loadData();
+            loadData(true); // Always refresh revenue on check-in
           }}
         />
 

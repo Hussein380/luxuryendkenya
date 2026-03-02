@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
     LayoutDashboard,
@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/context/AuthContext';
 
 const menuItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/admin', id: 'dashboard' },
@@ -29,6 +30,13 @@ interface AdminSidebarProps {
 
 export function AdminSidebar({ activeTab, onTabChange, className }: AdminSidebarProps) {
     const location = useLocation();
+    const navigate = useNavigate();
+    const { logout } = useAuth();
+
+    const handleExitAdmin = () => {
+        logout();
+        navigate('/');
+    };
 
     return (
         <aside className={cn(
@@ -109,12 +117,10 @@ export function AdminSidebar({ activeTab, onTabChange, className }: AdminSidebar
                 <Button
                     variant="ghost"
                     className="w-full justify-start text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl"
-                    asChild
+                    onClick={handleExitAdmin}
                 >
-                    <Link to="/">
-                        <LogOut className="w-4 h-4 mr-3" />
-                        <span className="text-sm font-medium">Exit Admin</span>
-                    </Link>
+                    <LogOut className="w-4 h-4 mr-3" />
+                    <span className="text-sm font-medium">Exit Admin</span>
                 </Button>
             </div>
         </aside>

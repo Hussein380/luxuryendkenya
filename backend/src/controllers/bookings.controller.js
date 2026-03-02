@@ -596,6 +596,10 @@ exports.updatePenalty = async (req, res) => {
         }
 
         await booking.save();
+
+        // CLEAR CACHE: Penalty affects revenue
+        await clearCarCache();
+
         sendSuccess(res, booking, 'Penalty fee updated successfully');
     } catch (error) {
         sendError(res, error.message, 500);
@@ -641,6 +645,9 @@ exports.markAsOverdue = async (req, res) => {
 
         booking.status = 'overdue';
         await booking.save();
+
+        // CLEAR CACHE: Status changed
+        await clearCarCache();
 
         // Send the alert email manually now
         const { sendOverdueAlert } = require('../services/email.service');
@@ -713,6 +720,9 @@ exports.extendTrip = async (req, res) => {
         // Update booking and recalculate final totalPrice if needed (logic omitted for brevity but recommended)
         booking.returnDate = newReturnDate;
         await booking.save();
+
+        // CLEAR CACHE: Return date changed
+        await clearCarCache();
 
         sendSuccess(res, booking, 'Trip extended successfully');
     } catch (error) {

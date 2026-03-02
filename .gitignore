@@ -14,12 +14,15 @@ dist-ssr
 # Environment files (NEVER commit real .env - contains secrets)
 .env
 .env.local
+.env.example
 .env.development
 .env.production
 .env.*.local
 backend/.env
 frontend/.env
+frontend/.env.example
 api/.env
+api/.env.example
 
 # Backend dev / test artifacts (do not push)
 backend/tests/

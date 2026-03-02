@@ -13,7 +13,7 @@ export default function Terms() {
         {
             icon: MapPin,
             title: "Pickup & Return",
-            content: "The vehicle is to be picked up and returned to the same location, which is situated next to Decale Hotel (Eastleigh 12th St)."
+            content: "The vehicle is to be picked up and returned to the same location," 
         },
         {
             icon: DollarSign,
