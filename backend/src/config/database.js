@@ -4,8 +4,10 @@ const logger = require('../utils/logger');
 const connectDB = async () => {
     try {
         const conn = await mongoose.connect(process.env.MONGODB_URI, {
-            serverSelectionTimeoutMS: 5000, // 5 seconds timeout
+            serverSelectionTimeoutMS: 15000, // Increased to 15 seconds
         });
+        // Disable buffering so we don't hang for 10s before failing
+        mongoose.set('bufferCommands', false);
         logger.info(`MongoDB Connected: ${conn.connection.host}`);
         return conn;
     } catch (error) {

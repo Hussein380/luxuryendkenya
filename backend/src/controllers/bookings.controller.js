@@ -243,8 +243,8 @@ exports.updateBookingStatus = async (req, res) => {
             }
         }
 
-        // AUTOMATION: If reset to pending, reserved, cancelled or completed, release car
-        if (['pending', 'reserved', 'cancelled', 'completed'].includes(status)) {
+        // AUTOMATION: If reset to pending, reserved, cancelled, returned or completed, release car
+        if (['pending', 'reserved', 'cancelled', 'returned', 'completed'].includes(status)) {
             await Car.findByIdAndUpdate(booking.car, { available: true });
             await clearCarCache();
         }
@@ -474,8 +474,8 @@ exports.startTrip = async (req, res) => {
         const booking = await Booking.findById(req.params.id);
         if (!booking) return sendError(res, 'Booking not found', 404);
 
-        if (!['paid', 'confirmed', 'reserved'].includes(booking.status)) {
-            return sendError(res, 'Booking must be paid, reserved, or confirmed before starting trip', 400);
+        if (booking.status !== 'paid') {
+            return sendError(res, 'Booking must be marked as paid before starting trip', 400);
         }
 
         booking.status = 'active';
@@ -518,28 +518,40 @@ exports.checkIn = async (req, res) => {
             return sendError(res, 'Associated car not found for this booking', 404);
         }
 
-        // Calculate late fee penalty
+        // Calculate penalty fee based on actual return vs expected return
         const diffMs = actualReturnDate - expectedReturnDate;
         const diffHours = diffMs / (1000 * 60 * 60);
 
         let penaltyAmount = 0;
         let penaltyReason = 'None';
 
-        if (diffHours > 1) { // 1 hour grace period
+        if (diffHours < 0) {
+            // Early Return
+            penaltyAmount = 0;
+            penaltyReason = `Early Return (${Math.abs(diffHours).toFixed(1)} hours early)`;
+        } else if (diffHours <= 1) {
+            // On-Time (within 1 hour grace)
+            penaltyAmount = 0;
+            penaltyReason = 'Returned on time (within grace period)';
+        } else {
+            // Late Return
             const dailyRate = car.pricePerDay || 0;
             if (diffHours <= 6) {
+                // Short delay: 50% of 1 day
                 penaltyAmount = dailyRate * 0.5;
                 penaltyReason = `Late Return (${diffHours.toFixed(1)} hours overdue)`;
             } else {
-                penaltyAmount = dailyRate;
-                penaltyReason = `Late Return (>6 hours overdue - Full Day Charge)`;
+                // Long delay: Linear daily rate
+                const lateDays = Math.ceil(diffHours / 24);
+                penaltyAmount = dailyRate * lateDays;
+                penaltyReason = `Late Return (${lateDays} day(s) / ${diffHours.toFixed(1)} hours overdue)`;
             }
         }
 
         const penaltyFee = {
             amount: penaltyAmount,
             status: penaltyAmount > 0 ? 'pending' : 'none',
-            reason: penaltyAmount > 0 ? penaltyReason : 'Returned on time'
+            reason: penaltyReason
         };
 
         // Atomic update for booking
@@ -547,13 +559,13 @@ exports.checkIn = async (req, res) => {
             req.params.id,
             {
                 actualReturnDate,
-                status: 'completed',
+                status: 'returned',
                 penaltyFee
             },
             { new: true }
         ).populate('car');
 
-        // Mark car as available
+        // Mark car as available immediately
         await Car.findByIdAndUpdate(car._id, { available: true });
 
         // CLEAR CACHE: Ensure website shows car as available immediately

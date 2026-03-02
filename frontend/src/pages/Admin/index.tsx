@@ -69,6 +69,7 @@ const statusConfig: Record<string, { label: string; color: string; icon: any }> 
   paid: { label: 'Paid', color: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20', icon: Check },
   active: { label: 'Active', color: 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20', icon: TrendingUp },
   overdue: { label: 'Overdue', color: 'bg-destructive/10 text-destructive border-destructive/20', icon: Clock },
+  returned: { label: 'Vehicle Returned', color: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20', icon: CheckCircle2 },
   completed: { label: 'Completed', color: 'bg-muted text-muted-foreground border-muted-foreground/20', icon: Check },
   cancelled: { label: 'Cancelled', color: 'bg-destructive/10 text-destructive border-destructive/20', icon: X },
 };
@@ -114,6 +115,12 @@ export default function Admin() {
 
       if (refreshRevenue || activeTab === 'revenue') {
         await loadRevenue();
+      }
+
+      // Sync selected booking details if modal is open
+      if (selectedBooking) {
+        const fresh = bookingsData.bookings.find((b: Booking) => b.id === selectedBooking.id);
+        if (fresh) setSelectedBooking(fresh);
       }
     } finally {
       setIsLoading(false);
@@ -261,10 +268,19 @@ export default function Admin() {
     const updated = await updateBookingStatus(id, 'confirmed');
     if (updated) {
       toast({ title: 'Booking Confirmed', description: `Booking ${updated.bookingId} has been confirmed.` });
-      if (selectedBooking && selectedBooking.id === id) setSelectedBooking(updated);
       loadData();
     } else {
       toast({ title: 'Update Failed', description: 'Could not confirm booking. Please try again.', variant: 'destructive' });
+    }
+  };
+
+  const handleCompleteBooking = async (id: string) => {
+    const updated = await updateBookingStatus(id, 'completed');
+    if (updated) {
+      toast({ title: 'Booking Completed', description: `Booking ${updated.bookingId} finalized.` });
+      loadData();
+    } else {
+      toast({ title: 'Update Failed', description: 'Could not complete booking.', variant: 'destructive' });
     }
   };
 
@@ -283,7 +299,34 @@ export default function Admin() {
     }
   };
 
-  const handleStartTrip = async (id: string) => {
+  const handleStartTrip = async (id: string, forceMarkPaid = false) => {
+    // Find the booking to check status
+    const booking = bookings.find(b => b.id === id);
+    if (!booking) return;
+
+    if (booking.status !== 'paid' && !forceMarkPaid) {
+      if (window.confirm(`Booking ${booking.bookingId} is not marked as paid. Would you like to mark it as paid and start the trip now?`)) {
+        // Collect receipt info manually if needed, or just proceed with manual confirm
+        const receipt = window.prompt('Enter M-Pesa Receipt (Manual Confirmation):', 'MANUAL-CONFIRM');
+        if (receipt === null) return; // User cancelled
+
+        const amountStr = window.prompt('Enter Paid Amount (Leave empty for total price):');
+        const amount = amountStr ? parseFloat(amountStr) : undefined;
+
+        const updatedPayment = await confirmPayment(id, receipt, amount);
+        if (updatedPayment) {
+          toast({ title: 'Payment Confirmed', description: 'Proceeding to start trip...' });
+          // Now recursively call with forceMarkPaid to actually start the trip
+          return handleStartTrip(id, true);
+        } else {
+          toast({ title: 'Payment Failed', description: 'Could not record payment. Trip not started.', variant: 'destructive' });
+          return;
+        }
+      } else {
+        return; // User declined
+      }
+    }
+
     const updated = await startTrip(id);
     if (updated) {
       toast({ title: 'Trip Started', description: `Trip for ${updated.bookingId} has officially started.` });
@@ -292,7 +335,7 @@ export default function Admin() {
     } else {
       toast({
         title: 'Checkout Failed',
-        description: 'Ensure the booking is confirmed/paid and not already active.',
+        description: 'Ensure the booking is paid and not already active.',
         variant: 'destructive'
       });
     }
@@ -366,7 +409,7 @@ export default function Admin() {
   const dashboardStats = {
     carTotal,
     activeBookings: bookings.filter(b => ['confirmed', 'paid', 'active', 'overdue'].includes(b.status)).length,
-    totalRevenue: bookings.filter(b => ['paid', 'active', 'overdue', 'completed'].includes(b.status)).reduce((sum, b) => {
+    totalRevenue: bookings.filter(b => ['paid', 'active', 'overdue', 'returned', 'completed'].includes(b.status)).reduce((sum, b) => {
       const penalty = b.penaltyFee?.status === 'paid' ? b.penaltyFee.amount : 0;
       return sum + b.totalPrice + penalty;
     }, 0),
@@ -600,7 +643,13 @@ export default function Admin() {
                                   {(booking.status === 'active' || booking.status === 'overdue') && (
                                     <DropdownMenuItem onClick={() => handleCheckIn(booking)}>
                                       <CheckCircle2 className="w-4 h-4 mr-2" />
-                                      Check-In (End Trip)
+                                      Vehicle Return
+                                    </DropdownMenuItem>
+                                  )}
+                                  {booking.status === 'returned' && (
+                                    <DropdownMenuItem onClick={() => handleCompleteBooking(booking.id)} className="text-emerald-600 font-bold">
+                                      <CheckCircle2 className="w-4 h-4 mr-2" />
+                                      Finalize Booking
                                     </DropdownMenuItem>
                                   )}
                                   {booking.status === 'active' && (

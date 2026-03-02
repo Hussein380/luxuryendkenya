@@ -115,7 +115,7 @@ export function CheckInModal({ isOpen, onClose, booking, onSuccess }: CheckInMod
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>
-                    <DialogTitle>Vehicle Check-In</DialogTitle>
+                    <DialogTitle>Vehicle Return Verification</DialogTitle>
                 </DialogHeader>
 
                 <div className="py-4 space-y-6">
@@ -132,23 +132,31 @@ export function CheckInModal({ isOpen, onClose, booking, onSuccess }: CheckInMod
                             </span>
                         </div>
                         {booking.actualReturnDate && (
-                            <div className="flex justify-between text-sm">
-                                <span className="text-muted-foreground">Actual Return</span>
-                                <span className="font-medium text-success">
-                                    {new Date(booking.actualReturnDate).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short', hour12: true })}
-                                </span>
-                            </div>
+                            <>
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-muted-foreground">Actual Return</span>
+                                    <span className="font-medium text-success">
+                                        {new Date(booking.actualReturnDate).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short', hour12: true })}
+                                    </span>
+                                </div>
+                                {booking.penaltyFee?.reason && (
+                                    <div className="flex justify-between text-sm pt-2 border-t border-border/20">
+                                        <span className="text-muted-foreground">Return Note</span>
+                                        <span className="font-medium text-accent">{booking.penaltyFee.reason}</span>
+                                    </div>
+                                )}
+                            </>
                         )}
                     </div>
 
-                    {!booking.actualReturnDate ? (
+                    {(booking.status === 'active' || booking.status === 'overdue') ? (
                         <div className="space-y-4">
                             {isOverdue && (
                                 <div className="flex gap-3 p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive">
                                     <AlertCircle className="w-5 h-5 shrink-0" />
                                     <div className="text-sm">
                                         <p className="font-semibold">Late Return Detected</p>
-                                        <p>The system will automatically calculate the penalty based on your business rules (1hr = 50%, 6hrs = 100%).</p>
+                                        <p>The system will calculate the penalty linearly (Daily Rate x Overdue Days) after confirmation.</p>
                                     </div>
                                 </div>
                             )}
@@ -158,7 +166,7 @@ export function CheckInModal({ isOpen, onClose, booking, onSuccess }: CheckInMod
                                 disabled={isSubmitting}
                             >
                                 {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <CheckCircle2 className="w-5 h-5 mr-2" />}
-                                {isOverdue ? 'Confirm Late Return' : 'Confirm Early Return'}
+                                {isOverdue ? 'Confirm Late Return' : 'Confirm Vehicle Return'}
                             </Button>
                         </div>
                     ) : (

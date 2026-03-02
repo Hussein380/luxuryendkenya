@@ -226,19 +226,18 @@ export function AdminBookingDetailsModal({
                         </Button>
                     )}
 
-                    {/* Mark as Paid - useful for any upcoming/active trip */}
-                    {(booking.status === 'confirmed' || booking.status === 'pending' || booking.status === 'active') && (
-                        <Button variant="outline" className="text-success border-success/30 hover:bg-success/10" onClick={() => onMarkPaid(booking.id)}>
-                            <CreditCard className="w-4 h-4 mr-2" />
-                            Mark as Paid
-                        </Button>
-                    )}
 
                     {/* Checkout - allow if confirmed or paid */}
-                    {(booking.status === 'paid' || booking.status === 'confirmed') && (
-                        <Button className="bg-indigo-600 hover:bg-indigo-700 text-white" onClick={() => onStartTrip(booking.id)}>
+                    {(booking.status === 'paid' || booking.status === 'confirmed' || booking.status === 'pending') && (
+                        <Button
+                            className={booking.status === 'paid'
+                                ? "bg-indigo-600 hover:bg-indigo-700 text-white"
+                                : "gradient-accent shadow-lg shadow-accent/20 font-bold border-0"
+                            }
+                            onClick={() => onStartTrip(booking.id)}
+                        >
                             <TrendingUp className="w-4 h-4 mr-2" />
-                            Checkout (Start Trip)
+                            {booking.status === 'paid' ? 'Checkout (Start Trip)' : 'Collect Payment & Start Trip'}
                         </Button>
                     )}
 

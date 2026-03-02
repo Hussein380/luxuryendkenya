@@ -60,6 +60,7 @@ function calculateRevenueMetrics(bookings) {
 
         switch (booking.status) {
             case 'paid':
+            case 'returned':
             case 'completed':
                 expectedRevenue += totalPrice;
                 collectedRevenue += totalPrice;
@@ -153,6 +154,7 @@ function groupRevenueByPeriod(bookings, groupBy) {
 
         switch (booking.status) {
             case 'paid':
+            case 'returned':
             case 'completed':
                 grouped[key].expectedRevenue += totalPrice;
                 grouped[key].collectedRevenue += totalPrice;
@@ -256,7 +258,7 @@ exports.exportRevenueCSV = async (req, res) => {
         ].map(escapeCsv).join(',');
 
         const rows = bookings.map(b => {
-            const amountPaid = ['paid', 'completed'].includes(b.status)
+            const amountPaid = ['paid', 'returned', 'completed'].includes(b.status)
                 ? b.totalPrice
                 : (b.penaltyFee?.status === 'paid' ? b.penaltyFee.amount : 0);
 
