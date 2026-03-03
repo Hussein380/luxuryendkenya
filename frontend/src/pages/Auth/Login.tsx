@@ -119,7 +119,7 @@ export default function Login() {
                                 <Input
                                     id="email"
                                     type="email"
-                                    placeholder="name@example.com"
+                                    placeholder="yourname@luxuryend.com"
                                     className="pl-10 bg-secondary/50 border-border/50 focus:border-accent transition-all"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}

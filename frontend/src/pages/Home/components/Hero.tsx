@@ -109,7 +109,7 @@ export const Hero = ({
                                             <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-accent" />
                                             <Input
                                                 required
-                                                placeholder="Enter location"
+                                                placeholder="e.g. Westlands, Nairobi"
                                                 value={hireDetails.location}
                                                 onChange={(e) => setHireDetails({ ...hireDetails, location: e.target.value })}
                                                 className="pl-10 h-14 bg-black/40 border-white/10 text-white placeholder:text-white/30 focus:border-accent transition-all rounded-xl shadow-inner"
@@ -153,7 +153,7 @@ export const Hero = ({
                                             <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-accent" />
                                             <Input
                                                 required
-                                                placeholder="Airport or Hotel"
+                                                placeholder="e.g. JKIA Airport"
                                                 value={transferDetails.pickup}
                                                 onChange={(e) => setTransferDetails({ ...transferDetails, pickup: e.target.value })}
                                                 className="pl-10 h-14 bg-black/40 border-white/10 text-white placeholder:text-white/30 focus:border-accent transition-all rounded-xl shadow-inner"
@@ -166,7 +166,7 @@ export const Hero = ({
                                             <ArrowRight className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-accent" />
                                             <Input
                                                 required
-                                                placeholder="Hotel or Airport"
+                                                placeholder="e.g. Radisson Blu"
                                                 value={transferDetails.dropoff}
                                                 onChange={(e) => setTransferDetails({ ...transferDetails, dropoff: e.target.value })}
                                                 className="pl-10 h-14 bg-black/40 border-white/10 text-white placeholder:text-white/30 focus:border-accent transition-all rounded-xl shadow-inner"

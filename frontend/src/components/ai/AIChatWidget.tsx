@@ -55,7 +55,7 @@ export function AIChatWidget() {
           {
             id: 'greeting',
             role: 'assistant',
-            content: 'Hi! How can I help you today?',
+            content: 'Welcome to LuxuryEnd. How may I assist you with your premium travel arrangements today?',
             timestamp: new Date().toISOString(),
           },
         ]);

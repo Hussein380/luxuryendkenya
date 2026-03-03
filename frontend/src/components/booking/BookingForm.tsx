@@ -392,7 +392,7 @@ export function BookingForm({ car }: BookingFormProps) {
                 name="firstName"
                 value={formData.firstName}
                 onChange={handleChange}
-                placeholder="John"
+                placeholder="Hassan"
                 required
               />
             </div>
@@ -403,7 +403,7 @@ export function BookingForm({ car }: BookingFormProps) {
                 name="lastName"
                 value={formData.lastName}
                 onChange={handleChange}
-                placeholder="Doe"
+                placeholder="Ali"
                 required
               />
             </div>
@@ -417,7 +417,7 @@ export function BookingForm({ car }: BookingFormProps) {
                 name="customerEmail"
                 value={formData.customerEmail}
                 onChange={handleChange}
-                placeholder="your@email.com"
+                placeholder="client@luxuryend.com"
               />
             </div>
             <div>

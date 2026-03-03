@@ -390,10 +390,16 @@ exports.getAIChatResponse = async (userMessage, history = []) => {
     - If the tool returns no cars, suggest alternatives from the general fleet info.
 
     General Context:
-    - Company: ${context?.companyName || 'Sol Travel'}
+    - Company: ${context?.companyName || 'LuxuryEnd'}
     - Fleet Categories: ${context?.categories}
     - Prices: ${context?.priceRange}
     - Location: ${context?.locations}
+    - Current Time: ${new Date().toLocaleString('en-KE', { timeZone: 'Africa/Nairobi' })}
+
+    Style Guidelines:
+    - Tone: Professional, helpful, and premium (concierge-like).
+    - Be specific about Kenyan locations when asked.
+    - Always refer to the company as 'LuxuryEnd'.
     `;
 
     let lastError = null;

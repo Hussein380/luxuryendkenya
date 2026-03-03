@@ -127,7 +127,7 @@ export default function Register() {
                                 <Input
                                     id="name"
                                     type="text"
-                                    placeholder="John Doe"
+                                    placeholder="Hassan Ali"
                                     className="pl-10 bg-secondary/50 border-border/50 focus:border-accent transition-all"
                                     value={name}
                                     onChange={(e) => {
@@ -148,7 +148,7 @@ export default function Register() {
                                 <Input
                                     id="email"
                                     type="email"
-                                    placeholder="name@example.com"
+                                    placeholder="yourname@luxuryend.com"
                                     className="pl-10 bg-secondary/50 border-border/50 focus:border-accent transition-all"
                                     value={email}
                                     onChange={(e) => {
