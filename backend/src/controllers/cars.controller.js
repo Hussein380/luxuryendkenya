@@ -3,6 +3,7 @@ const { sendSuccess, sendError } = require('../utils/response');
 const { NAIROBI_LOCATIONS } = require('../config/locations.config');
 const { clearCarCache } = require('../config/redis.config');
 const Booking = require('../models/Booking');
+const { invalidateFleetContextCache } = require('../services/recommendation.service');
 
 // @desc    Get all cars with filters/search
 // @route   GET /api/cars
@@ -262,6 +263,7 @@ exports.createCar = async (req, res) => {
 
         const car = await Car.create(carData);
         await clearCarCache();
+        invalidateFleetContextCache();
         sendSuccess(res, car, 'Car created successfully', 201);
     } catch (error) {
         console.error('Create Car Error:', error);
@@ -336,6 +338,7 @@ exports.updateCar = async (req, res) => {
         });
 
         await clearCarCache();
+        invalidateFleetContextCache();
         sendSuccess(res, car, 'Car updated successfully');
     } catch (error) {
         console.error('Update Car Error:', error);
@@ -355,6 +358,7 @@ exports.deleteCar = async (req, res) => {
 
         await car.deleteOne();
         await clearCarCache();
+        invalidateFleetContextCache();
         sendSuccess(res, null, 'Car deleted successfully');
     } catch (error) {
         sendError(res, error.message, 500);

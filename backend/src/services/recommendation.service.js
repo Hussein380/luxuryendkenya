@@ -3,6 +3,7 @@ const Booking = require('../models/Booking');
 const bookingService = require('./booking.service');
 const { NAIROBI_LOCATIONS } = require('../config/locations.config');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const Fuse = require('fuse.js');
 
 /**
  * Get personalized car recommendations
@@ -170,11 +171,21 @@ const CONTACT_CONTEXT = {
     whatsappLink: 'https://wa.me/254725675022',
 };
 
+// In-memory cache for fleet context to avoid DB hits on every AI message
+let fleetContextCache = null;
+let lastCacheUpdate = 0;
+const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
+
 /**
  * Internal helper to fetch current fleet context for the AI
  */
 const getFleetContext = async () => {
     try {
+        const now = Date.now();
+        if (fleetContextCache && (now - lastCacheUpdate < CACHE_TTL)) {
+            return fleetContextCache;
+        }
+
         const [categories, priceStats, carsByCategory] = await Promise.all([
             Car.distinct('category'),
             Car.aggregate([
@@ -209,17 +220,28 @@ const getFleetContext = async () => {
             `${cat.category.toUpperCase()}: ${cat.samples.map(s => `${s.brand} ${s.model} ($${s.price})`).join(', ')}`
         ).join(' | ');
 
-        return {
+        fleetContextCache = {
             categories: categories.join(', '),
             locations: locationNames,
             priceRange: `KES ${minPrice} - ${maxPrice} per day`,
             availableCars: carSummary,
             ...CONTACT_CONTEXT
         };
+        lastCacheUpdate = now;
+
+        return fleetContextCache;
     } catch (error) {
         console.error('Error fetching fleet context:', error);
         return { ...CONTACT_CONTEXT };
     }
+};
+
+/**
+ * Invalidate the fleet context cache (call when car data changes)
+ */
+exports.invalidateFleetContextCache = () => {
+    fleetContextCache = null;
+    lastCacheUpdate = 0;
 };
 
 /**
@@ -268,28 +290,41 @@ async function executeCheckAvailability({ query, pickupDate, returnDate }) {
             return { error: "Invalid date format. Please use YYYY-MM-DD." };
         }
 
-        // 1. Find candidate cars based on the query (name, brand, or category)
-        const searchRegex = new RegExp(query, 'i');
-        const candidateCars = await Car.find({
-            available: true,
-            $or: [
-                { name: searchRegex },
-                { brand: searchRegex },
-                { model: searchRegex },
-                { category: searchRegex }
-            ]
-        }).select('name brand model category pricePerDay imageUrl');
+        // 1. Fetch all potentially available cars
+        const allAvailableCars = await Car.find({ available: true })
+            .select('name brand model category pricePerDay imageUrl description')
+            .lean();
 
-        if (candidateCars.length === 0) {
+        if (allAvailableCars.length === 0) {
             return {
                 available: false,
-                message: `No cars found matching "${query}". We have: SUV, Sedan, Economy, Luxury.`
+                message: "We currently have no cars available in our fleet."
             };
         }
 
-        // 2. Check overlap for each candidate
+        // 2. Perform fuzzy search
+        const fuseOptions = {
+            keys: ['name', 'brand', 'model', 'category', 'description'],
+            threshold: 0.4, // Adjust for sensitivity (0.0 is perfect match, 1.0 matches everything)
+            includeScore: true
+        };
+        const fuse = new Fuse(allAvailableCars, fuseOptions);
+        const searchResults = fuse.search(query);
+
+        if (searchResults.length === 0) {
+            const categories = [...new Set(allAvailableCars.map(c => c.category))];
+            return {
+                available: false,
+                message: `No cars found matching "${query}". We have categories: ${categories.join(', ')}.`
+            };
+        }
+
+        // 3. Narrow candidates to top matches (limit to say 10 to check availability)
+        const candidates = searchResults.slice(0, 10).map(result => result.item);
+
+        // 4. Check overlap for each candidate
         const availableCars = [];
-        for (const car of candidateCars) {
+        for (const car of candidates) {
             const isAvailable = await bookingService.checkCarAvailability(car._id, pDate, rDate);
             if (isAvailable) {
                 availableCars.push(car);
@@ -303,7 +338,7 @@ async function executeCheckAvailability({ query, pickupDate, returnDate }) {
             };
         }
 
-        // 3. Return top 3 matches
+        // 5. Return top 3 matches
         return {
             available: true,
             count: availableCars.length,

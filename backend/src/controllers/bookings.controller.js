@@ -7,6 +7,7 @@ const { addEmailJob } = require('../services/queue.service');
 const mpesaService = require('../services/mpesa.service');
 const logger = require('../utils/logger');
 const { clearCarCache } = require('../config/redis.config');
+const { invalidateFleetContextCache } = require('../services/recommendation.service');
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
 
@@ -100,6 +101,7 @@ exports.createBooking = async (req, res) => {
             // CLEAR CACHE: New booking affects car availability dates
             const { clearCarCache } = require('../config/redis.config');
             await clearCarCache();
+            invalidateFleetContextCache();
 
             if (bookingType === 'book_now') {
                 // Initiate M-Pesa STK Push
@@ -240,6 +242,7 @@ exports.updateBookingStatus = async (req, res) => {
             if (now >= booking.pickupDate && now <= booking.returnDate) {
                 await Car.findByIdAndUpdate(booking.car, { available: false });
                 await clearCarCache();
+                invalidateFleetContextCache();
             }
         }
 
@@ -247,6 +250,7 @@ exports.updateBookingStatus = async (req, res) => {
         if (['pending', 'reserved', 'cancelled', 'returned', 'completed'].includes(status)) {
             await Car.findByIdAndUpdate(booking.car, { available: true });
             await clearCarCache();
+            invalidateFleetContextCache();
         }
 
         sendSuccess(res, booking, `Booking status updated to ${status}`);
@@ -303,6 +307,7 @@ exports.handleMpesaCallback = async (req, res) => {
 
                 // CLEAR CACHE: Car availability changed
                 await clearCarCache();
+                invalidateFleetContextCache();
             }
 
             // Send receipt email to customer
@@ -376,6 +381,7 @@ exports.confirmPayment = async (req, res) => {
             // CLEAR CACHE: Car availability changed
             const { clearCarCache } = require('../config/redis.config');
             await clearCarCache();
+            invalidateFleetContextCache();
         }
 
         // Send receipt email
@@ -420,6 +426,7 @@ exports.cancelBooking = async (req, res) => {
         // CLEAR CACHE: Cancelled booking frees up dates
         const { clearCarCache } = require('../config/redis.config');
         await clearCarCache();
+        invalidateFleetContextCache();
 
         sendSuccess(res, booking, 'Booking successfully cancelled');
     } catch (error) {
@@ -487,6 +494,7 @@ exports.startTrip = async (req, res) => {
         // CLEAR CACHE: Ensure website hides car instantly
         const { clearCarCache } = require('../config/redis.config');
         await clearCarCache();
+        invalidateFleetContextCache();
 
         // Send "Trip Started" email
         const { sendTripStartEmail } = require('../services/email.service');
@@ -572,6 +580,7 @@ exports.checkIn = async (req, res) => {
         try {
             const { clearCarCache } = require('../config/redis.config');
             await clearCarCache();
+            invalidateFleetContextCache();
         } catch (cacheErr) {
             logger.error(`Cache clear failed: ${cacheErr.message}`);
         }
@@ -611,6 +620,7 @@ exports.updatePenalty = async (req, res) => {
 
         // CLEAR CACHE: Penalty affects revenue
         await clearCarCache();
+        invalidateFleetContextCache();
 
         sendSuccess(res, booking, 'Penalty fee updated successfully');
     } catch (error) {
@@ -660,6 +670,7 @@ exports.markAsOverdue = async (req, res) => {
 
         // CLEAR CACHE: Status changed
         await clearCarCache();
+        invalidateFleetContextCache();
 
         // Send the alert email manually now
         const { sendOverdueAlert } = require('../services/email.service');
@@ -697,6 +708,7 @@ exports.markNoShow = async (req, res) => {
         // CLEAR CACHE
         const { clearCarCache } = require('../config/redis.config');
         await clearCarCache();
+        invalidateFleetContextCache();
 
         sendSuccess(res, booking, 'Booking marked as No-Show and car released');
     } catch (error) {
@@ -735,6 +747,7 @@ exports.extendTrip = async (req, res) => {
 
         // CLEAR CACHE: Return date changed
         await clearCarCache();
+        invalidateFleetContextCache();
 
         sendSuccess(res, booking, 'Trip extended successfully');
     } catch (error) {
